@@ -14,6 +14,8 @@ designed so that all game rules are testable without a browser or a network.
   with a message log and status panels — classic roguelike presentation in the browser.
 - **Massively multiplayer.** One shared world; the architecture must scale from
   2 players on a laptop to thousands across processes/machines.
+- **Social.** Every player picks a handle and can chat — zone-local and global
+  channels (§6.4).
 - **Server-authoritative.** The server owns the truth; clients are terminals.
 - **Testable by construction.** All game rules are pure functions in a dependency-free
   package, testable with plain unit tests — no DOM, no sockets.
@@ -99,7 +101,7 @@ game-mmo-text-opencode-go/
 │   │   └── tests/
 │   ├── server/                   # @game/server
 │   │   ├── src/
-│   │   │   ├── gateway/          # WebSocket accept, auth, rate-limit, (de)serialize
+│   │   │   ├── gateway/          # WebSocket accept, auth, rate-limit, chat relay, (de)serialize
 │   │   │   ├── sim/              # tick loop, command queue, snapshot builder
 │   │   │   ├── world/            # world store, zone management
 │   │   │   ├── persistence/      # save/load behind an interface
@@ -109,7 +111,7 @@ game-mmo-text-opencode-go/
 │   │   ├── index.html
 │   │   ├── src/
 │   │   │   ├── render/           # glyph grid, colors, message log, status panel
-│   │   │   ├── input/            # keyboard → commands (vi-keys + arrows)
+│   │   │   ├── input/            # keyboard → commands (vi-keys + arrows), chat input mode
 │   │   │   ├── net/              # WebSocket client, reconnect, interpolation buffer
 │   │   │   ├── ui/               # screens: connect, death, help
 │   │   │   └── main.ts
@@ -168,6 +170,11 @@ interface World {
   ais:       Map<EntityId, Ai>;
   players:   Map<EntityId, PlayerSession>; // which entities are human-controlled
 }
+
+interface PlayerSession {
+  handle: string;      // display name, chosen at connect, unique among online players
+  connectedAt: number;
+}
 ```
 
 This shape is deliberately boring: serializable, diffable, and trivial to construct
@@ -215,19 +222,23 @@ hand-authored vaults spliced in.
 ### 6.2 Message types (discriminated unions in `shared/protocol`)
 
 ```ts
+type ChatChannel = 'zone' | 'global';
+
 // client → server
 type ClientMessage =
-  | { t: 'hello';  name: string; protocolVersion: number }
+  | { t: 'hello';  handle: string; protocolVersion: number }
   | { t: 'cmd';    seq: number; cmd: Command }        // move/attack/use/quaff…
+  | { t: 'chat';   channel: ChatChannel; text: string }
   | { t: 'ping';   clientTime: number };
 
 // server → client
 type ServerMessage =
-  | { t: 'welcome';  entityId: EntityId; zoneSeed: number; tick: number }
+  | { t: 'welcome';  entityId: EntityId; zoneSeed: number; tick: number; roster: string[] }
   | { t: 'snapshot'; tick: number; entities: EntityView[] }   // full, on join/zone change
   | { t: 'delta';    tick: number; changed: EntityView[]; removed: EntityId[] }
   | { t: 'events';   tick: number; events: Event[] }          // "You hit the goblin!"
-  | { t: 'reject';   seq: number; reason: string }
+  | { t: 'chat';     from: string; channel: ChatChannel; text: string; tick: number }
+  | { t: 'reject';   seq: number; reason: string }            // also used for invalid chat/handles
   | { t: 'pong';     clientTime: number; serverTime: number };
 ```
 
@@ -253,6 +264,34 @@ Render loop (`requestAnimationFrame`) is decoupled from network ticks; entity
 positions interpolate between the last two snapshots so 10 ticks/sec still looks
 smooth.
 
+### 6.4 Chat
+
+Chat is a first-class feature, but it is **not a game rule** — it never touches
+the simulation or world state. The gateway relays chat messages directly
+connection → connection, which keeps the sim deterministic and means chat load
+can never slow down the tick loop.
+
+- **Handles**: chosen in the `hello` message. The gateway validates: 1–16 chars,
+  `[a-zA-Z0-9_-]`, unique among currently online players (case-insensitive).
+  Invalid or taken handles get a `reject` and the client re-prompts. Handles are
+  ephemeral in v1 (tied to the connection); account-bound handles arrive with
+  persistence.
+- **Channels**: `zone` reaches players in your current zone; `global` reaches
+  everyone online. The channel type is in the protocol, so adding `party` or
+  `whisper` later is a server change only, not a protocol break.
+- **Abuse controls** (all at the gateway edge):
+  - token-bucket rate limit per connection (e.g. 1 msg/sec, burst 4);
+  - hard max length (240 chars), enforced by the zod schema;
+  - clients render chat via `textContent`, never `innerHTML` — no HTML/JS
+    injection is possible by construction. Enforced by an ESLint rule
+    (`no-unsanitized/property` on the log renderer).
+- **History**: the gateway keeps the last ~50 messages per channel in memory and
+  includes them in `welcome`-adjacent catch-up so joiners see recent context.
+  No persistence.
+- **Display**: chat interleaves with game events in the message log, prefixed
+  and color-coded — `<handle>` in one color for zone, another for global, while
+  game events stay un-prefixed.
+
 ---
 
 ## 7. Server Architecture
@@ -268,8 +307,9 @@ Gateway (I/O)  ──commands──▶  Simulation (pure-ish core)  ──▶  W
      └──────────── snapshots/deltas/events ◀───────────────────────┘
 ```
 
-- **Gateway**: owns sockets, session lifecycle, zod validation, per-connection
-  rate limits, backpressure (drop deltas, never drop events).
+- **Gateway**: owns sockets, session lifecycle, handle validation, zod
+  validation, per-connection rate limits, chat relay (§6.4 — bypasses the sim
+  entirely), backpressure (drop deltas, never drop events).
 - **Simulation**: owns the tick loop and the world; single-threaded by design
   (one zone = one logical thread of execution — no locks anywhere).
 - **WorldStore**: interface with an in-memory implementation now; Redis/Postgres
@@ -309,20 +349,25 @@ communication is by message, not shared memory.
   interface (`Renderer.render(view: FrameView)`) if profiling demands it.
 - **Input**: keyboard-only (arrows + vi-keys + `g`et, `i`nventory, etc.). Input
   maps to `Command` objects from `shared/protocol` — the client literally cannot
-  express an illegal action.
+  express an illegal action. **Chat input is modal**: pressing `Enter` opens a
+  chat line at the bottom of the screen that captures the keyboard (movement
+  keys are suspended); `Enter` sends, `Esc` cancels, `Tab` switches channel.
+  The prompt shows the target: `[zone] >` or `[global] >`.
 - **State**: the client keeps no game rules, only the last two snapshots + event
   log. All display logic (colors, glyph choice) is pure `view → string` functions,
   unit-tested with jsdom.
 
 ```
 ┌──────────────────────────────────────────────┐
-│ #############        @ - you                 │
+│ #############        @ - you (RogueGary)     │
 │ #...........#        HP 12/12  Depth 3       │
 │ #..@....g...#  ───▶  ─────────────           │
-│ #....###....#        You hit the goblin.     │
-│ #############        The goblin dies!        │
+│ #....###....#        <Molly> anyone seen     │
+│ #############          the stairs down?      │
+│                      You hit the goblin.     │
+│ [zone] > watch out, goblins near the stairs_ │
 └──────────────────────────────────────────────┘
-   glyph grid              sidebar + message log
+   glyph grid        sidebar + message log + chat input
 ```
 
 ---
@@ -337,6 +382,7 @@ Test pyramid, cheapest at the bottom:
 | Property | fast-check | rule invariants | "no entity ever occupies a wall tile", "FOV is symmetric" |
 | Determinism | Vitest | replay | same seed + same command log ⇒ identical world hash |
 | Integration | Vitest | sim + fake in-memory clients | two players fight; loser dies, winner sees `Died` event |
+| Integration | Vitest | gateway chat relay | zone chat reaches same-zone players only; global reaches all; rate limiter drops spam |
 | E2E smoke | Playwright | real browser ↔ real server | connect, see `@`, press arrow, `@` moves |
 
 Guidelines:
@@ -497,8 +543,9 @@ is premature for a single-zone stateful sim.
 
 ## 13. Phased Roadmap
 
-1. **Walking skeleton** — connect, spawn as `@`, move on one static map, see
-   another player move. Proves protocol, tick loop, renderer, CI.
+1. **Walking skeleton** — connect with a handle, spawn as `@`, move on one
+   static map, see another player move, chat. Proves protocol, tick loop,
+   renderer, gateway relay, CI.
 2. **Roguelike core** — procgen zones, FOV, monsters with AI, melee combat,
    death/respawn, message log. All rules in `shared`, fully unit-tested.
 3. **Depth** — items, inventory, stairs between zones, energy/speed tuning.
