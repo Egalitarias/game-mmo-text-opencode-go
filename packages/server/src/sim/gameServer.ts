@@ -143,11 +143,16 @@ export class GameServer {
     for (const msg of this.chatHistory.recent(globalChatKey())) conn.send(msg);
     for (const msg of this.chatHistory.recent(zoneChatKey(ZONE_ID))) conn.send(msg);
 
-    this.broadcastAll({
-      t: "events",
-      tick: this.world.tick,
-      events: [{ kind: "joined", entityId, handle }],
-    });
+    // The joiner's welcome roster already includes themselves — only others
+    // need the joined event.
+    this.broadcastAll(
+      {
+        t: "events",
+        tick: this.world.tick,
+        events: [{ kind: "joined", entityId, handle }],
+      },
+      conn,
+    );
   }
 
   private onCmd(conn: Connection, seq: number, cmd: QueuedCommand["cmd"]): void {
@@ -233,8 +238,9 @@ export class GameServer {
     return views;
   }
 
-  private broadcastAll(msg: ServerMessage): void {
+  private broadcastAll(msg: ServerMessage, except?: Connection): void {
     for (const [conn, state] of this.clients) {
+      if (conn === except) continue;
       if (state.entityId !== undefined) conn.send(msg);
     }
   }

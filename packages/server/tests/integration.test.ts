@@ -73,6 +73,15 @@ describe("session lifecycle", () => {
     expect(conn.last("reject").reason).toContain("protocol mismatch");
   });
 
+  it("does not echo the joiner's own joined event (welcome roster already has self)", () => {
+    const server = makeServer();
+    const alice = join(server, "Alice");
+
+    const events = alice.ofType("events").flatMap((m) => m.events);
+    expect(events).not.toContainEqual(expect.objectContaining({ kind: "joined", handle: "Alice" }));
+    expect(alice.last("welcome").roster).toEqual(["Alice"]);
+  });
+
   it("announces join and leave to other players", () => {
     const server = makeServer();
     const alice = join(server, "Alice");
