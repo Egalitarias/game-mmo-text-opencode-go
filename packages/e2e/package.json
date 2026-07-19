@@ -1,0 +1,16 @@
+{
+  "name": "@game/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "build": "echo 'nothing to build'",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.53.0",
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.3"
+  }
+}

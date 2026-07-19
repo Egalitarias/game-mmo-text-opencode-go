@@ -1,0 +1,26 @@
+{
+  "name": "game-mmo-text-opencode-go",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n server,client \"pnpm -C packages/server dev\" \"pnpm -C packages/client dev\"",
+    "build": "pnpm -r build",
+    "test": "pnpm -r --filter \"!@game/e2e\" test",
+    "test:e2e": "pnpm -C packages/e2e test",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.0",
+    "concurrently": "^9.2.0",
+    "eslint": "^9.30.0",
+    "eslint-config-prettier": "^10.1.5",
+    "eslint-plugin-import": "^2.32.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.35.0"
+  },
+  "packageManager": "pnpm@11.15.0"
+}

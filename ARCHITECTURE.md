@@ -48,11 +48,11 @@ flowchart LR
 
 **Three npm workspaces, one source of truth:**
 
-| Package | Runs in | Responsibility |
-|---|---|---|
-| `@game/shared` | both | Protocol messages, game rules (pure), types, seeded RNG, map gen |
-| `@game/client` | browser | Rendering, input, networking, zero game rules |
-| `@game/server` | node | WebSocket gateway, authoritative simulation, persistence |
+| Package        | Runs in | Responsibility                                                   |
+| -------------- | ------- | ---------------------------------------------------------------- |
+| `@game/shared` | both    | Protocol messages, game rules (pure), types, seeded RNG, map gen |
+| `@game/client` | browser | Rendering, input, networking, zero game rules                    |
+| `@game/server` | node    | WebSocket gateway, authoritative simulation, persistence         |
 
 The critical rule: **`shared` contains every game rule; `client` and `server` contain
 none.** The same `shared` code runs the real game on the server and powers unit tests.
@@ -61,21 +61,21 @@ none.** The same `shared` code runs the real game on the server and powers unit 
 
 ## 3. Tech Stack
 
-| Concern | Choice | Why |
-|---|---|---|
-| Language | TypeScript 5, `strict: true` | Shared types across the wire |
-| Monorepo | pnpm workspaces | Lightweight, fast, first-class workspaces |
-| Client bundler | Vite | Fast dev server, trivial TS support |
-| Text rendering | DOM grid first (Canvas later) | Accessible, easy to debug, fast enough for a text grid |
-| Roguelike toolkit | none / hand-rolled on `shared` | Keeps rules pure and dependency-free |
-| Server runtime | Node.js 20+, `tsx` for dev | Same language as client |
-| WebSocket | `ws` | Minimal, battle-tested |
-| Validation | `zod` (protocol boundary only) | Validate untrusted client input once, at the edge |
-| Tests | Vitest (+ fast-check for property tests) | One runner for all workspaces |
-| E2E smoke tests | Playwright | Real browser against a real server |
-| Linting | ESLint 9 flat config + `typescript-eslint` | One config at repo root |
-| Formatting | Prettier (`eslint-config-prettier` to disable conflicts) | Zero-bikeshed formatting |
-| Git hooks | `lint-staged` + `simple-git-hooks` | Fast pre-commit lint/typecheck |
+| Concern           | Choice                                                   | Why                                                    |
+| ----------------- | -------------------------------------------------------- | ------------------------------------------------------ |
+| Language          | TypeScript 5, `strict: true`                             | Shared types across the wire                           |
+| Monorepo          | pnpm workspaces                                          | Lightweight, fast, first-class workspaces              |
+| Client bundler    | Vite                                                     | Fast dev server, trivial TS support                    |
+| Text rendering    | DOM grid first (Canvas later)                            | Accessible, easy to debug, fast enough for a text grid |
+| Roguelike toolkit | none / hand-rolled on `shared`                           | Keeps rules pure and dependency-free                   |
+| Server runtime    | Node.js 20+, `tsx` for dev                               | Same language as client                                |
+| WebSocket         | `ws`                                                     | Minimal, battle-tested                                 |
+| Validation        | `zod` (protocol boundary only)                           | Validate untrusted client input once, at the edge      |
+| Tests             | Vitest (+ fast-check for property tests)                 | One runner for all workspaces                          |
+| E2E smoke tests   | Playwright                                               | Real browser against a real server                     |
+| Linting           | ESLint 9 flat config + `typescript-eslint`               | One config at repo root                                |
+| Formatting        | Prettier (`eslint-config-prettier` to disable conflicts) | Zero-bikeshed formatting                               |
+| Git hooks         | `lint-staged` + `simple-git-hooks`                       | Fast pre-commit lint/typecheck                         |
 
 ---
 
@@ -154,10 +154,24 @@ Entities are plain data; behaviour lives in pure functions ("systems").
 ```ts
 type EntityId = number;
 
-interface Position { x: number; y: number; zone: ZoneId }
-interface Stats    { hp: number; maxHp: number; attack: number; defense: number }
-interface Energy   { current: number; speed: number }
-interface Ai       { kind: 'aggressive' | 'wander' | 'flee' }
+interface Position {
+  x: number;
+  y: number;
+  zone: ZoneId;
+}
+interface Stats {
+  hp: number;
+  maxHp: number;
+  attack: number;
+  defense: number;
+}
+interface Energy {
+  current: number;
+  speed: number;
+}
+interface Ai {
+  kind: "aggressive" | "wander" | "flee";
+}
 
 interface World {
   tick: number;
@@ -165,14 +179,14 @@ interface World {
   entities: Map<EntityId, Entity>;
   // components stored as sparse maps keyed by EntityId:
   positions: Map<EntityId, Position>;
-  stats:     Map<EntityId, Stats>;
-  energies:  Map<EntityId, Energy>;
-  ais:       Map<EntityId, Ai>;
-  players:   Map<EntityId, PlayerSession>; // which entities are human-controlled
+  stats: Map<EntityId, Stats>;
+  energies: Map<EntityId, Energy>;
+  ais: Map<EntityId, Ai>;
+  players: Map<EntityId, PlayerSession>; // which entities are human-controlled
 }
 
 interface PlayerSession {
-  handle: string;      // display name, chosen at connect, unique among online players
+  handle: string; // display name, chosen at connect, unique among online players
   connectedAt: number;
 }
 ```
@@ -189,9 +203,9 @@ input, randomness only via an injected seeded RNG:
 type Rule = (world: World, rng: Rng, cmd: Command) => Event[];
 
 // examples
-tryMove(world, rng, { entity, dx, dy })   // → [Moved] | [Bumped] | [Attacked]
-resolveAttack(world, rng, { attacker, target })
-computeFov(world, entity)                 // → Set<TileId>  (visible tiles)
+tryMove(world, rng, { entity, dx, dy }); // → [Moved] | [Bumped] | [Attacked]
+resolveAttack(world, rng, { attacker, target });
+computeFov(world, entity); // → Set<TileId>  (visible tiles)
 ```
 
 Consequences:
@@ -222,24 +236,24 @@ hand-authored vaults spliced in.
 ### 6.2 Message types (discriminated unions in `shared/protocol`)
 
 ```ts
-type ChatChannel = 'zone' | 'global';
+type ChatChannel = "zone" | "global";
 
 // client → server
 type ClientMessage =
-  | { t: 'hello';  handle: string; protocolVersion: number }
-  | { t: 'cmd';    seq: number; cmd: Command }        // move/attack/use/quaff…
-  | { t: 'chat';   channel: ChatChannel; text: string }
-  | { t: 'ping';   clientTime: number };
+  | { t: "hello"; handle: string; protocolVersion: number }
+  | { t: "cmd"; seq: number; cmd: Command } // move/attack/use/quaff…
+  | { t: "chat"; channel: ChatChannel; text: string }
+  | { t: "ping"; clientTime: number };
 
 // server → client
 type ServerMessage =
-  | { t: 'welcome';  entityId: EntityId; zoneSeed: number; tick: number; roster: string[] }
-  | { t: 'snapshot'; tick: number; entities: EntityView[] }   // full, on join/zone change
-  | { t: 'delta';    tick: number; changed: EntityView[]; removed: EntityId[] }
-  | { t: 'events';   tick: number; events: Event[] }          // "You hit the goblin!"
-  | { t: 'chat';     from: string; channel: ChatChannel; text: string; tick: number }
-  | { t: 'reject';   seq: number; reason: string }            // also used for invalid chat/handles
-  | { t: 'pong';     clientTime: number; serverTime: number };
+  | { t: "welcome"; entityId: EntityId; zoneSeed: number; tick: number; roster: string[] }
+  | { t: "snapshot"; tick: number; entities: EntityView[] } // full, on join/zone change
+  | { t: "delta"; tick: number; changed: EntityView[]; removed: EntityId[] }
+  | { t: "events"; tick: number; events: Event[] } // "You hit the goblin!"
+  | { t: "chat"; from: string; channel: ChatChannel; text: string; tick: number }
+  | { t: "reject"; seq: number; reason: string } // also used for invalid chat/handles
+  | { t: "pong"; clientTime: number; serverTime: number };
 ```
 
 - **All untrusted input is parsed with zod at the gateway.** Inside the sim,
@@ -319,21 +333,21 @@ Gateway (I/O)  ──commands──▶  Simulation (pure-ish core)  ──▶  W
 
 ```ts
 setInterval(() => {
-  const cmds = commandQueue.drain();          // validated commands from gateway
-  const rng = Rng.forTick(world.tick, seed);  // deterministic per tick
+  const cmds = commandQueue.drain(); // validated commands from gateway
+  const rng = Rng.forTick(world.tick, seed); // deterministic per tick
   const events = stepWorld(world, cmds, rng); // shared: run all systems in order
-  const views = buildInterestViews(world);    // per-player visible state
+  const views = buildInterestViews(world); // per-player visible state
   gateway.broadcast(views, events);
 }, TICK_MS);
 ```
 
 ### 7.3 Scaling path ("any number of players")
 
-| Stage | Capacity | Change |
-|---|---|---|
-| 1. Single process | ~hundreds | — |
-| 2. Zone sharding | ~thousands | Each zone runs in its own worker/process; gateway routes by player zone; zone hand-off via WorldStore |
-| 3. Edge gateways | ~tens of thousands | Stateless gateways behind a load balancer; sims behind them; sticky sessions per zone |
+| Stage             | Capacity           | Change                                                                                                |
+| ----------------- | ------------------ | ----------------------------------------------------------------------------------------------------- |
+| 1. Single process | ~hundreds          | —                                                                                                     |
+| 2. Zone sharding  | ~thousands         | Each zone runs in its own worker/process; gateway routes by player zone; zone hand-off via WorldStore |
+| 3. Edge gateways  | ~tens of thousands | Stateless gateways behind a load balancer; sims behind them; sticky sessions per zone                 |
 
 The design constraints that make this possible are already in place: zones are
 independent, the sim is single-threaded per zone, and all cross-layer
@@ -376,25 +390,27 @@ communication is by message, not shared memory.
 
 Test pyramid, cheapest at the bottom:
 
-| Layer | Tool | What | Example |
-|---|---|---|---|
-| Unit | Vitest | pure rules in `shared` | `tryMove` into a wall returns `Bumped`, no state change |
-| Property | fast-check | rule invariants | "no entity ever occupies a wall tile", "FOV is symmetric" |
-| Determinism | Vitest | replay | same seed + same command log ⇒ identical world hash |
-| Integration | Vitest | sim + fake in-memory clients | two players fight; loser dies, winner sees `Died` event |
-| Integration | Vitest | gateway chat relay | zone chat reaches same-zone players only; global reaches all; rate limiter drops spam |
-| E2E smoke | Playwright | real browser ↔ real server | connect, see `@`, press arrow, `@` moves |
+| Layer       | Tool       | What                         | Example                                                                               |
+| ----------- | ---------- | ---------------------------- | ------------------------------------------------------------------------------------- |
+| Unit        | Vitest     | pure rules in `shared`       | `tryMove` into a wall returns `Bumped`, no state change                               |
+| Property    | fast-check | rule invariants              | "no entity ever occupies a wall tile", "FOV is symmetric"                             |
+| Determinism | Vitest     | replay                       | same seed + same command log ⇒ identical world hash                                   |
+| Integration | Vitest     | sim + fake in-memory clients | two players fight; loser dies, winner sees `Died` event                               |
+| Integration | Vitest     | gateway chat relay           | zone chat reaches same-zone players only; global reaches all; rate limiter drops spam |
+| E2E smoke   | Playwright | real browser ↔ real server   | connect, see `@`, press arrow, `@` moves                                              |
 
 Guidelines:
 
-- **No mocks of `shared`.** The real rules *are* the test fixture; build small
+- **No mocks of `shared`.** The real rules _are_ the test fixture; build small
   worlds with test factories (`makeWorld`, `addGoblin`).
 - Fake the network at the gateway seam (`InMemoryTransport`) for integration
   tests — no ports, no flakiness.
 - Snapshot-test map generation per seed; a gen algorithm change must be a
   deliberate diff.
 - Coverage target: ~100% on `shared/rules`, otherwise pragmatism.
-- `pnpm -r test` runs everything; CI runs lint → typecheck → all tests.
+- `pnpm test` runs unit + integration (no browsers needed); `pnpm test:e2e` runs
+  the Playwright smoke tests (one-time setup: `pnpm -C packages/e2e exec playwright
+  install chromium`). CI runs lint → typecheck → tests.
 
 ---
 
@@ -421,10 +437,10 @@ Guidelines:
 ```bash
 pnpm install          # bootstrap all workspaces
 pnpm dev              # server (tsx watch) + client (vite) concurrently
-pnpm test             # vitest across workspaces
-pnpm test:watch
+pnpm test             # vitest unit + integration across workspaces (excludes e2e)
+pnpm test:e2e         # Playwright smoke tests (needs playwright install first)
 pnpm lint / pnpm format
-pnpm build            # type-check + bundle all packages
+pnpm build            # type-check all packages + bundle the client
 ```
 
 Client dev server proxies `/ws` to the local server, so `pnpm dev` is the only
@@ -456,11 +472,11 @@ TLS is effectively mandatory: browsers block `ws://` from `https://` pages
 Node speaks plain HTTP/WS on localhost** — never terminate TLS in Node (cert
 renewal, performance, and config all get worse).
 
-| Option | Verdict |
-|---|---|
-| **Caddy** | Default choice. Automatic Let's Encrypt issuance + renewal, WebSocket proxying works out of the box |
-| **nginx + certbot** | Fine, more moving parts |
-| **Cloudflare proxy/tunnel** | Add later for DDoS protection — game servers attract attacks |
+| Option                      | Verdict                                                                                             |
+| --------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Caddy**                   | Default choice. Automatic Let's Encrypt issuance + renewal, WebSocket proxying works out of the box |
+| **nginx + certbot**         | Fine, more moving parts                                                                             |
+| **Cloudflare proxy/tunnel** | Add later for DDoS protection — game servers attract attacks                                        |
 
 ### 12.3 Reverse proxy configs
 
