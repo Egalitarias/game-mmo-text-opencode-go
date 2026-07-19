@@ -59,7 +59,7 @@ After=network.target
 Type=simple
 User=deploy
 WorkingDirectory=/home/deploy/game-mmo-text-opencode-go/packages/server
-ExecStart=/home/deploy/game-mmo-text-opencode-go/node_modules/.bin/tsx src/index.ts
+ExecStart=/home/deploy/game-mmo-text-opencode-go/packages/server/node_modules/.bin/tsx src/index.ts
 Restart=always
 RestartSec=2
 Environment=NODE_ENV=production HOST=127.0.0.1 PORT=3000
