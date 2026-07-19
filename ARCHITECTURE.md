@@ -111,7 +111,7 @@ game-mmo-text-opencode-go/
 │   │   ├── index.html
 │   │   ├── src/
 │   │   │   ├── render/           # glyph grid, colors, message log, status panel
-│   │   │   ├── input/            # keyboard → commands (vi-keys + arrows), chat input mode
+│   │   │   ├── input/            # keyboard → commands (wasd + arrows), chat input mode
 │   │   │   ├── net/              # WebSocket client, reconnect, interpolation buffer
 │   │   │   ├── ui/               # screens: connect, death, help
 │   │   │   └── main.ts
@@ -361,7 +361,7 @@ communication is by message, not shared memory.
   diffing against the previous frame. Simple, screen-reader-friendly, and fast
   enough for an 80×50 viewport. A Canvas2D renderer can replace it behind the same
   interface (`Renderer.render(view: FrameView)`) if profiling demands it.
-- **Input**: keyboard-only (arrows + vi-keys + `g`et, `i`nventory, etc.). Input
+- **Input**: keyboard-only (arrows + wasd + `g`et, `i`nventory, etc.). Input
   maps to `Command` objects from `shared/protocol` — the client literally cannot
   express an illegal action. **Chat input is modal**: pressing `Enter` opens a
   chat line at the bottom of the screen that captures the keyboard (movement

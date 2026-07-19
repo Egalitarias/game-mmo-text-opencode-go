@@ -9,11 +9,11 @@ describe("keyToMove", () => {
     expect(keyToMove("ArrowRight")).toEqual({ kind: "move", dx: 1, dy: 0 });
   });
 
-  it("maps vi-keys including diagonals", () => {
-    expect(keyToMove("h")).toEqual({ kind: "move", dx: -1, dy: 0 });
-    expect(keyToMove("j")).toEqual({ kind: "move", dx: 0, dy: 1 });
-    expect(keyToMove("k")).toEqual({ kind: "move", dx: 0, dy: -1 });
-    expect(keyToMove("l")).toEqual({ kind: "move", dx: 1, dy: 0 });
+  it("maps wasd including diagonals", () => {
+    expect(keyToMove("a")).toEqual({ kind: "move", dx: -1, dy: 0 });
+    expect(keyToMove("s")).toEqual({ kind: "move", dx: 0, dy: 1 });
+    expect(keyToMove("w")).toEqual({ kind: "move", dx: 0, dy: -1 });
+    expect(keyToMove("d")).toEqual({ kind: "move", dx: 1, dy: 0 });
     expect(keyToMove("y")).toEqual({ kind: "move", dx: -1, dy: -1 });
     expect(keyToMove("u")).toEqual({ kind: "move", dx: 1, dy: -1 });
     expect(keyToMove("b")).toEqual({ kind: "move", dx: -1, dy: 1 });

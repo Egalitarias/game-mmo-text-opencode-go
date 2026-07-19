@@ -122,7 +122,7 @@ curl -s -o /dev/null -w "%{http_code}\n" \
 ```
 
 Then open `https://swordandboard.xyz` in two tabs — pick handles, move with
-arrows or vi-keys, press `Enter` to chat.
+arrows or wasd, press `Enter` to chat.
 
 ## 6. Redeploy flow
 

@@ -1,19 +1,19 @@
 import type { Command } from "@game/shared";
 
-/** Pure key → move mapping: arrows, vi-keys (hjkl), diagonals (yubn). */
+/** Pure key → move mapping: arrows, wasd, diagonals (yubn). */
 export function keyToMove(key: string): Command | null {
   switch (key) {
     case "ArrowUp":
-    case "k":
+    case "w":
       return { kind: "move", dx: 0, dy: -1 };
     case "ArrowDown":
-    case "j":
+    case "s":
       return { kind: "move", dx: 0, dy: 1 };
     case "ArrowLeft":
-    case "h":
+    case "a":
       return { kind: "move", dx: -1, dy: 0 };
     case "ArrowRight":
-    case "l":
+    case "d":
       return { kind: "move", dx: 1, dy: 0 };
     case "y":
       return { kind: "move", dx: -1, dy: -1 };
