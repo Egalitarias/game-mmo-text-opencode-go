@@ -388,11 +388,110 @@ command needed to play locally. Multiplayer testing = open two browser tabs.
 
 ## 12. Deployment (v1)
 
-- Server: single Node process on any VM/container host (`node packages/server/dist`),
-  env vars for port and tick rate.
-- Client: static build (`vite build`) served by the same process or any CDN.
-- No database yet; world resets on restart. Persistence arrives via the
-  `WorldStore` interface without touching game code.
+### 12.1 Topology
+
+```mermaid
+flowchart LR
+    A[Browser] -->|HTTPS + WSS, port 443| B[Reverse proxy<br/>Caddy or nginx]
+    B -->|static files| C[(client dist/)]
+    B -->|plain HTTP/WS<br/>127.0.0.1:3000| D[Node game server<br/>systemd service]
+```
+
+One Linux box, three concerns:
+
+1. **Reverse proxy** on ports 80/443 — the only thing exposed to the internet.
+2. **Node process** bound to `127.0.0.1:3000` — never directly reachable.
+3. **Static client** — the Vite build output, served by the proxy.
+
+### 12.2 TLS & certificates
+
+TLS is effectively mandatory: browsers block `ws://` from `https://` pages
+(mixed content), so the socket must be `wss://`. **The proxy terminates TLS;
+Node speaks plain HTTP/WS on localhost** — never terminate TLS in Node (cert
+renewal, performance, and config all get worse).
+
+| Option | Verdict |
+|---|---|
+| **Caddy** | Default choice. Automatic Let's Encrypt issuance + renewal, WebSocket proxying works out of the box |
+| **nginx + certbot** | Fine, more moving parts |
+| **Cloudflare proxy/tunnel** | Add later for DDoS protection — game servers attract attacks |
+
+### 12.3 Reverse proxy configs
+
+Caddy (entire config — certs are automatic):
+
+```
+game.example.com
+
+root * /srv/game/client/dist
+@ws path /ws
+reverse_proxy @ws 127.0.0.1:3000
+file_server
+```
+
+nginx equivalent — note the two things everyone forgets: the `Upgrade` headers
+and the read timeout (default 60s kills long-lived game sockets):
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name game.example.com;
+    # ssl_certificate / ssl_certificate_key via certbot
+
+    root /srv/game/client/dist;
+
+    location /ws {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;      # required for WebSocket
+        proxy_set_header Connection "upgrade";       # required for WebSocket
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_read_timeout 3600s;                    # don't kill idle game connections
+    }
+}
+```
+
+The client derives its socket URL from the page origin
+(`wss://<host>/ws`), so the same build works in every environment.
+
+### 12.4 Process management: systemd
+
+```ini
+# /etc/systemd/system/game-server.service
+[Unit]
+Description=Game server
+After=network.target
+
+[Service]
+Type=simple
+User=game                          # non-root
+WorkingDirectory=/srv/game/server
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=2
+Environment=NODE_ENV=production PORT=3000 HOST=127.0.0.1
+
+[Install]
+WantedBy=multi-user.target
+```
+
+systemd gives boot-start, crash-restart, and journald logs for free. A Docker
+image with `--restart=always` behind the same proxy is an equally valid
+alternative — pick based on the deploy pipeline, not the topology. Kubernetes
+is premature for a single-zone stateful sim.
+
+### 12.5 Operational notes
+
+- **Firewall**: only ports 80/443 open; 3000 bound to loopback only.
+- **Serverless/edge does not fit**: a stateful in-memory world with long-lived
+  sockets needs a real long-running process.
+- **Deploys**: connections are stateful, so deploy by draining — stop accepting
+  new connections, save the world, restart, clients auto-reconnect (the reconnect
+  path from the roadmap makes this seamless).
+- **No database yet**: world resets on restart until the `WorldStore` interface
+  gains a persistent implementation — no game code changes required.
+- **Scaling later** (roadmap phase 4): sticky sessions per zone at the proxy,
+  Cloudflare or similar in front for DDoS mitigation.
 
 ---
 
