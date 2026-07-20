@@ -167,8 +167,9 @@ classic `ws` `isAlive` recipe).
   (`gameServer.ts:173-185`) that can abort a zone send — **FIXED:** `pos` lookup
   now happens before `tryTake()` for zone chat; early return on missing position
   no longer wastes a token.
-- **`allowBuilds` in `pnpm-workspace.yaml`** looks redundant next to
-  `onlyBuiltDependencies` (the documented key). Harmless; verify.
+- **`allowBuilds` in `pnpm-workspace.yaml`** — **VERIFIED:** `allowBuilds` is the
+  pnpm v11 mechanism for approving postinstall scripts; `onlyBuiltDependencies`
+  was redundant and has been removed. Only `allowBuilds: esbuild: true` remains.
 - **`<pre id="grid">` glyph blob** isn't really screen-reader-friendly despite
   ARCHITECTURE.md's claim — needs an aria summary later.
 - **Test gaps** (suite is otherwise strong): **FIXED:** added tests for
