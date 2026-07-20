@@ -84,15 +84,13 @@ than equality), but is easily misread. Worse, the second pillar is hardcoded
 
 ## Medium
 
-### 5. Playwright `test-results/` committed to git
+### 5. Playwright `test-results/` committed to git — **FIXED**
 
 `packages/e2e/test-results/.last-run.json`,
 `packages/e2e/test-results/smoke-connect-see-yourself-move-chat/error-context.md`
 
-Tracked but not in `.gitignore`.
-
-**Fix:** add `test-results/` and `playwright-report/` to `.gitignore`;
-`git rm -r --cached packages/e2e/test-results`.
+> Fixed: `test-results/` and `playwright-report/` added to `.gitignore`;
+> previously tracked files removed from the index (kept on disk).
 
 ### 6. WebSocket edge hardening
 
