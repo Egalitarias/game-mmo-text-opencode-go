@@ -44,6 +44,20 @@ export interface Energy {
   speed: number;
 }
 
+export type ItemKind = "potion" | "sword" | "shield" | "gold";
+
+export interface Item {
+  kind: ItemKind;
+  name: string;
+  /** For potions: healing amount. For weapons/armor: stat bonus. */
+  value?: number;
+}
+
+export interface Inventory {
+  items: Item[];
+  maxSize: number;
+}
+
 export interface World {
   tick: number;
   zones: Map<ZoneId, Zone>;
@@ -53,6 +67,8 @@ export interface World {
   stats: Map<EntityId, Stats>;
   ais: Map<EntityId, Ai>;
   energies: Map<EntityId, Energy>;
+  items: Map<EntityId, Item>;
+  inventories: Map<EntityId, Inventory>;
   nextEntityId: EntityId;
   /** Occupancy index: "zone,x,y" → EntityId for O(1) lookups. */
   occupancy: Map<string, EntityId>;
@@ -68,6 +84,8 @@ export function makeWorld(): World {
     stats: new Map(),
     ais: new Map(),
     energies: new Map(),
+    items: new Map(),
+    inventories: new Map(),
     nextEntityId: 1,
     occupancy: new Map(),
   };
@@ -104,6 +122,7 @@ export function spawnPlayer(
         world.positions.set(id, { x, y, zone: zoneId });
         world.players.set(id, { handle, connectedAt: now });
         world.stats.set(id, { hp: 20, maxHp: 20, attack: 5, defense: 2 });
+        world.inventories.set(id, { items: [], maxSize: 10 });
         world.occupancy.set(occupancyKey(zoneId, x, y), id);
         return id;
       }
@@ -154,6 +173,35 @@ export function removeEntity(world: World, id: EntityId): void {
   world.stats.delete(id);
   world.ais.delete(id);
   world.energies.delete(id);
+  world.items.delete(id);
+  world.inventories.delete(id);
+}
+
+/** Spawn an item entity at the specified position. */
+export function spawnItem(
+  world: World,
+  zoneId: ZoneId,
+  x: number,
+  y: number,
+  item: Item,
+): EntityId | undefined {
+  const zone = world.zones.get(zoneId);
+  if (!zone) return undefined;
+  if (!isWalkable(zone, x, y)) return undefined;
+  if (entityAt(world, zoneId, x, y)) return undefined;
+
+  const id = world.nextEntityId++;
+  const glyphs: Record<ItemKind, string> = {
+    potion: "!",
+    sword: "/",
+    shield: "]",
+    gold: "$",
+  };
+  world.entities.set(id, { id, glyph: glyphs[item.kind] });
+  world.positions.set(id, { x, y, zone: zoneId });
+  world.items.set(id, item);
+  world.occupancy.set(occupancyKey(zoneId, x, y), id);
+  return id;
 }
 
 /**

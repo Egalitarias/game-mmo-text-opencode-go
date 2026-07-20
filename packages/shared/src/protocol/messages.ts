@@ -17,11 +17,20 @@ export type ClientMessage =
   | { t: "chat"; channel: ChatChannel; text: string }
   | { t: "ping"; clientTime: number };
 
-const commandSchema = z.object({
-  kind: z.literal("move"),
-  dx: z.union([z.literal(-1), z.literal(0), z.literal(1)]),
-  dy: z.union([z.literal(-1), z.literal(0), z.literal(1)]),
-});
+const commandSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("move"),
+    dx: z.union([z.literal(-1), z.literal(0), z.literal(1)]),
+    dy: z.union([z.literal(-1), z.literal(0), z.literal(1)]),
+  }),
+  z.object({
+    kind: z.literal("pickup"),
+  }),
+  z.object({
+    kind: z.literal("drop"),
+    slot: z.number().int().nonnegative(),
+  }),
+]);
 
 /**
  * Drift guard: the wire schema and the Command type must be mutually

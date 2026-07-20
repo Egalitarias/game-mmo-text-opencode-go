@@ -3,6 +3,7 @@ import type { Rng } from "../rng/rng.js";
 import type { Command, Event } from "./types.js";
 import { tryMove } from "./movement.js";
 import { decideMonsterAction } from "./ai.js";
+import { pickupItem, dropItem } from "./inventory.js";
 
 export interface QueuedCommand {
   entityId: EntityId;
@@ -22,6 +23,12 @@ export function stepWorld(world: World, cmds: QueuedCommand[], rng: Rng): Event[
     switch (cmd.kind) {
       case "move":
         events.push(...tryMove(world, rng, entityId, cmd.dx, cmd.dy));
+        break;
+      case "pickup":
+        events.push(...pickupItem(world, entityId));
+        break;
+      case "drop":
+        events.push(...dropItem(world, entityId, cmd.slot));
         break;
     }
   }

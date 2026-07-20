@@ -22,9 +22,9 @@ All ISSUES.md items resolved.
 
 ---
 
-## Phase 2: Roguelike Core
+## Phase 2: Roguelike Core ✓
 
-**Status:** In progress
+**Status:** Complete
 
 ### Procedural Map Generation
 - ✓ Replace static room with BSP or cellular automata caves
@@ -62,11 +62,14 @@ All ISSUES.md items resolved.
 
 ## Phase 3: Depth
 
-**Status:** Not started
+**Status:** In progress
 
 ### Items and Inventory
-- Item entities in the world
-- Pickup/drop commands (`g`et, `d`rop)
+- ✓ Item entities in the world (potions, swords, shields, gold)
+- ✓ Pickup/drop commands (`pickup`, `drop`)
+- ✓ Inventory system with max size (10 slots)
+- ✓ Item spawning at specific positions
+- ✓ Pickup and drop events for client rendering
 - Inventory UI and management (`i`nventory)
 - Item effects (healing, buffs, equipment)
 
