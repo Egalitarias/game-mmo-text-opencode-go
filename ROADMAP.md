@@ -84,9 +84,10 @@ All ISSUES.md items resolved.
 - Zone change events for client rendering
 
 ### Energy/Speed System
-- Energy component: `current`, `speed`
-- Roguelike turn ordering based on energy accumulation
-- Fast monsters act more frequently than slow ones
+- ✓ Energy component: `current`, `speed`
+- ✓ Roguelike turn ordering based on energy accumulation
+- ✓ Fast monsters act more frequently than slow ones
+- ✓ Implemented as part of monster AI system
 
 ---
 
