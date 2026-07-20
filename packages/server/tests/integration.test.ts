@@ -131,6 +131,16 @@ describe("movement", () => {
     expect(after).toEqual({ x: before.x + 1, y: before.y, zone: "cave" });
   });
 
+  it("skips snapshot broadcast on idle ticks (no events)", () => {
+    const server = makeServer();
+    const conn = join(server, "Alice");
+    const snapshotsBefore = conn.ofType("snapshot").length;
+
+    server.tick();
+
+    expect(conn.ofType("snapshot")).toHaveLength(snapshotsBefore);
+  });
+
   it("rejects commands before login", () => {
     const server = makeServer();
     const conn = new FakeConnection();

@@ -203,9 +203,8 @@ export class GameServer {
     const events = stepWorld(this.world, cmds, rng);
     if (events.length > 0) {
       this.broadcastAll({ t: "events", tick: this.world.tick, events });
+      this.broadcastAll({ t: "snapshot", tick: this.world.tick, entities: this.buildViews() });
     }
-    // Phase 1: full snapshot per tick. Deltas + interest management come later.
-    this.broadcastAll({ t: "snapshot", tick: this.world.tick, entities: this.buildViews() });
   }
 
   start(tickMs = 100): void {
