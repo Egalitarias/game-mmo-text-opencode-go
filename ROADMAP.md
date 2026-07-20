@@ -60,18 +60,19 @@ All ISSUES.md items resolved.
 
 ---
 
-## Phase 3: Depth
+## Phase 3: Depth ✓
 
-**Status:** In progress
+**Status:** Complete
 
 ### Items and Inventory
 - ✓ Item entities in the world (potions, swords, shields, gold)
 - ✓ Pickup/drop commands (`pickup`, `drop`)
+- ✓ Use command to consume items (`use`)
 - ✓ Inventory system with max size (10 slots)
 - ✓ Item spawning at specific positions
-- ✓ Pickup and drop events for client rendering
+- ✓ Pickup, drop, and use events for client rendering
+- ✓ Item effects: potions heal HP, swords boost attack, shields boost defense
 - Inventory UI and management (`i`nventory)
-- Item effects (healing, buffs, equipment)
 
 ### Multiple Zones
 - ✓ Stairs between zones (up/down)

@@ -6,6 +6,7 @@ import {
   spawnItem,
   pickupItem,
   dropItem,
+  useItem,
   stepWorld,
   createRng,
 } from "../src/index.js";
@@ -321,5 +322,191 @@ describe("player inventory initialization", () => {
     expect(inventory).toBeDefined();
     expect(inventory?.items).toEqual([]);
     expect(inventory?.maxSize).toBe(10);
+  });
+});
+
+describe("useItem", () => {
+  it("uses a potion to heal HP", () => {
+    const world = makeWorld();
+    const zone = generateZone("zone1", 20, 20, 12345);
+    world.zones.set("zone1", zone);
+    
+    const player = spawnPlayer(world, "zone1", "Player", 0)!;
+    const stats = world.stats.get(player)!;
+    stats.hp = 10; // Damage the player
+    
+    const inventory = world.inventories.get(player)!;
+    inventory.items.push({ kind: "potion", name: "Health Potion", value: 10 });
+    
+    const events = useItem(world, player, 0);
+    
+    expect(events.length).toBe(1);
+    expect(events[0]?.kind).toBe("item_used");
+    if (events[0]?.kind === "item_used") {
+      expect(events[0].effect).toBe("healed 10 HP");
+    }
+    
+    expect(stats.hp).toBe(20);
+    expect(inventory.items.length).toBe(0);
+  });
+
+  it("potion does not heal beyond maxHp", () => {
+    const world = makeWorld();
+    const zone = generateZone("zone1", 20, 20, 12345);
+    world.zones.set("zone1", zone);
+    
+    const player = spawnPlayer(world, "zone1", "Player", 0)!;
+    const stats = world.stats.get(player)!;
+    stats.hp = 15; // Slightly damaged
+    
+    const inventory = world.inventories.get(player)!;
+    inventory.items.push({ kind: "potion", name: "Health Potion", value: 10 });
+    
+    const events = useItem(world, player, 0);
+    
+    expect(events.length).toBe(1);
+    if (events[0]?.kind === "item_used") {
+      expect(events[0].effect).toBe("healed 5 HP");
+    }
+    
+    expect(stats.hp).toBe(20); // Capped at maxHp
+  });
+
+  it("uses a sword to boost attack", () => {
+    const world = makeWorld();
+    const zone = generateZone("zone1", 20, 20, 12345);
+    world.zones.set("zone1", zone);
+    
+    const player = spawnPlayer(world, "zone1", "Player", 0)!;
+    const stats = world.stats.get(player)!;
+    const initialAttack = stats.attack;
+    
+    const inventory = world.inventories.get(player)!;
+    inventory.items.push({ kind: "sword", name: "Iron Sword", value: 3 });
+    
+    const events = useItem(world, player, 0);
+    
+    expect(events.length).toBe(1);
+    expect(events[0]?.kind).toBe("item_used");
+    if (events[0]?.kind === "item_used") {
+      expect(events[0].effect).toBe("attack +3");
+    }
+    
+    expect(stats.attack).toBe(initialAttack + 3);
+    expect(inventory.items.length).toBe(0);
+  });
+
+  it("uses a shield to boost defense", () => {
+    const world = makeWorld();
+    const zone = generateZone("zone1", 20, 20, 12345);
+    world.zones.set("zone1", zone);
+    
+    const player = spawnPlayer(world, "zone1", "Player", 0)!;
+    const stats = world.stats.get(player)!;
+    const initialDefense = stats.defense;
+    
+    const inventory = world.inventories.get(player)!;
+    inventory.items.push({ kind: "shield", name: "Iron Shield", value: 2 });
+    
+    const events = useItem(world, player, 0);
+    
+    expect(events.length).toBe(1);
+    expect(events[0]?.kind).toBe("item_used");
+    if (events[0]?.kind === "item_used") {
+      expect(events[0].effect).toBe("defense +2");
+    }
+    
+    expect(stats.defense).toBe(initialDefense + 2);
+    expect(inventory.items.length).toBe(0);
+  });
+
+  it("cannot use gold", () => {
+    const world = makeWorld();
+    const zone = generateZone("zone1", 20, 20, 12345);
+    world.zones.set("zone1", zone);
+    
+    const player = spawnPlayer(world, "zone1", "Player", 0)!;
+    
+    const inventory = world.inventories.get(player)!;
+    inventory.items.push({ kind: "gold", name: "Gold Coins", value: 50 });
+    
+    const events = useItem(world, player, 0);
+    
+    expect(events.length).toBe(0);
+    expect(inventory.items.length).toBe(1); // Item not consumed
+  });
+
+  it("fails with invalid slot index", () => {
+    const world = makeWorld();
+    const zone = generateZone("zone1", 20, 20, 12345);
+    world.zones.set("zone1", zone);
+    
+    const player = spawnPlayer(world, "zone1", "Player", 0)!;
+    
+    const events = useItem(world, player, 0);
+    
+    expect(events).toEqual([]);
+  });
+
+  it("fails with negative slot index", () => {
+    const world = makeWorld();
+    const zone = generateZone("zone1", 20, 20, 12345);
+    world.zones.set("zone1", zone);
+    
+    const player = spawnPlayer(world, "zone1", "Player", 0)!;
+    const inventory = world.inventories.get(player)!;
+    inventory.items.push({ kind: "potion", name: "Potion" });
+    
+    const events = useItem(world, player, -1);
+    
+    expect(events).toEqual([]);
+  });
+
+  it("uses item from middle of inventory", () => {
+    const world = makeWorld();
+    const zone = generateZone("zone1", 20, 20, 12345);
+    world.zones.set("zone1", zone);
+    
+    const player = spawnPlayer(world, "zone1", "Player", 0)!;
+    const stats = world.stats.get(player)!;
+    stats.hp = 10;
+    
+    const inventory = world.inventories.get(player)!;
+    inventory.items.push({ kind: "gold", name: "Gold" });
+    inventory.items.push({ kind: "potion", name: "Health Potion", value: 10 });
+    inventory.items.push({ kind: "sword", name: "Sword" });
+    
+    const events = useItem(world, player, 1);
+    
+    expect(events.length).toBe(1);
+    if (events[0]?.kind === "item_used") {
+      expect(events[0].item.name).toBe("Health Potion");
+    }
+    
+    expect(stats.hp).toBe(20);
+    expect(inventory.items.length).toBe(2);
+    expect(inventory.items[0]?.name).toBe("Gold");
+    expect(inventory.items[1]?.name).toBe("Sword");
+  });
+});
+
+describe("use command integration with stepWorld", () => {
+  it("use command works through stepWorld", () => {
+    const world = makeWorld();
+    const zone = generateZone("zone1", 20, 20, 12345);
+    world.zones.set("zone1", zone);
+    
+    const player = spawnPlayer(world, "zone1", "Player", 0)!;
+    const stats = world.stats.get(player)!;
+    stats.hp = 10;
+    
+    const inventory = world.inventories.get(player)!;
+    inventory.items.push({ kind: "potion", name: "Health Potion", value: 10 });
+    
+    const rng = createRng(1);
+    const events = stepWorld(world, [{ entityId: player, cmd: { kind: "use", slot: 0 } }], rng);
+    
+    expect(events.some(e => e.kind === "item_used")).toBe(true);
+    expect(stats.hp).toBe(20);
   });
 });

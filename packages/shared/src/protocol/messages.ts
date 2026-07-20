@@ -30,6 +30,10 @@ const commandSchema = z.discriminatedUnion("kind", [
     kind: z.literal("drop"),
     slot: z.number().int().nonnegative(),
   }),
+  z.object({
+    kind: z.literal("use"),
+    slot: z.number().int().nonnegative(),
+  }),
 ]);
 
 /**

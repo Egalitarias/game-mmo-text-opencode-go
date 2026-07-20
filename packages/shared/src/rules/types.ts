@@ -4,7 +4,8 @@ import type { EntityId, Item, Position } from "../model/world.js";
 export type Command =
   | { kind: "move"; dx: -1 | 0 | 1; dy: -1 | 0 | 1 }
   | { kind: "pickup" }
-  | { kind: "drop"; slot: number };
+  | { kind: "drop"; slot: number }
+  | { kind: "use"; slot: number };
 
 /** Something that happened in the world; drives client logs and deltas. */
 export type Event =
@@ -17,4 +18,5 @@ export type Event =
   | { kind: "respawned"; entityId: EntityId; at: Position }
   | { kind: "pickedUp"; entityId: EntityId; item: Item }
   | { kind: "dropped"; entityId: EntityId; item: Item; at: Position }
-  | { kind: "zone_changed"; entityId: EntityId; from: Position; to: Position };
+  | { kind: "zone_changed"; entityId: EntityId; from: Position; to: Position }
+  | { kind: "item_used"; entityId: EntityId; item: Item; effect: string };

@@ -87,3 +87,56 @@ export function dropItem(world: World, playerId: EntityId, slot: number): Event[
 
   return [{ kind: "dropped", entityId: playerId, item, at: pos }];
 }
+
+/**
+ * Use an item from the player's inventory.
+ * Potions heal HP, swords boost attack, shields boost defense.
+ * Gold cannot be used.
+ * Returns item_used event if successful, empty array if invalid slot or unusable item.
+ */
+export function useItem(world: World, playerId: EntityId, slot: number): Event[] {
+  const inventory = world.inventories.get(playerId);
+  if (!inventory) return [];
+
+  // Check if slot is valid
+  if (slot < 0 || slot >= inventory.items.length) return [];
+
+  const item = inventory.items[slot];
+  if (!item) return [];
+
+  const stats = world.stats.get(playerId);
+  if (!stats) return [];
+
+  let effect = "";
+
+  switch (item.kind) {
+    case "potion": {
+      const healAmount = item.value ?? 10;
+      const oldHp = stats.hp;
+      stats.hp = Math.min(stats.maxHp, stats.hp + healAmount);
+      const actualHeal = stats.hp - oldHp;
+      effect = `healed ${actualHeal} HP`;
+      break;
+    }
+    case "sword": {
+      const attackBonus = item.value ?? 2;
+      stats.attack += attackBonus;
+      effect = `attack +${attackBonus}`;
+      break;
+    }
+    case "shield": {
+      const defenseBonus = item.value ?? 1;
+      stats.defense += defenseBonus;
+      effect = `defense +${defenseBonus}`;
+      break;
+    }
+    case "gold":
+      // Gold cannot be used
+      return [];
+  }
+
+  // Remove item from inventory (consumed)
+  inventory.items.splice(slot, 1);
+
+  return [{ kind: "item_used", entityId: playerId, item, effect }];
+}
