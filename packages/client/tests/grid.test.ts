@@ -1,11 +1,21 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { generateZone } from "@game/shared";
+import type { Zone } from "@game/shared";
 import { buildAriaSummary, buildRows, DomGridRenderer } from "../src/render/grid.js";
 
-const zone = generateZone("cave", 10, 5, 1);
-
-// generateZone puts pillars at (width/4, height/2) and mirrored: (2,2) and (7,2) here.
+// Manually constructed zone for predictable test layout
+const zone: Zone = {
+  id: "cave",
+  width: 10,
+  height: 5,
+  tiles: [
+    "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall",
+    "wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall",
+    "wall", "floor", "wall", "floor", "floor", "floor", "floor", "wall", "floor", "wall",
+    "wall", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "floor", "wall",
+    "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall", "wall",
+  ],
+};
 
 describe("buildRows", () => {
   it("renders walls and floors", () => {

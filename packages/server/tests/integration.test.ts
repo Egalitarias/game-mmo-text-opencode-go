@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { PROTOCOL_VERSION, generateZone, makeWorld } from "@game/shared";
-import type { ServerMessage } from "@game/shared";
+import { PROTOCOL_VERSION, makeWorld } from "@game/shared";
+import type { ServerMessage, Zone } from "@game/shared";
 import type { Connection } from "../src/gateway/connection.js";
-import { GameServer, ZONE_ID, ZONE_SEED } from "../src/sim/gameServer.js";
+import { GameServer, ZONE_ID } from "../src/sim/gameServer.js";
 import { ChatHistory } from "../src/gateway/chat.js";
 
 class FakeConnection implements Connection {
@@ -265,25 +265,28 @@ describe("edge cases", () => {
 
   it("rejects with 'world is full' when no walkable tiles are available", () => {
     const world = makeWorld();
-    const tinyZone = generateZone(ZONE_ID, 3, 3, ZONE_SEED);
+    // Manually create a tiny zone with exactly 2 floor tiles
+    const tinyZone: Zone = {
+      id: ZONE_ID,
+      width: 4,
+      height: 3,
+      tiles: [
+        "wall", "wall", "wall", "wall",
+        "wall", "floor", "floor", "wall",
+        "wall", "wall", "wall", "wall",
+      ],
+    };
     world.zones.set(ZONE_ID, tinyZone);
     const server = new GameServer({ now: () => 1000, world });
 
     const alice = join(server, "Alice");
     expect(alice.ofType("welcome")).toHaveLength(1);
 
-    // Fill all remaining walkable tiles with fake entities.
-    const zone = world.zones.get(ZONE_ID)!;
-    for (let y = 0; y < zone.height; y++) {
-      for (let x = 0; x < zone.width; x++) {
-        const tile = zone.tiles[y * zone.width + x];
-        if (tile === "floor" && !world.positions.has(world.nextEntityId - 1)) {
-          const id = world.nextEntityId++;
-          world.entities.set(id, { id, glyph: "@" });
-          world.positions.set(id, { x, y, zone: ZONE_ID });
-        }
-      }
-    }
+    // Fill the remaining floor tile with a fake entity
+    const id = world.nextEntityId++;
+    world.entities.set(id, { id, glyph: "@" });
+    world.positions.set(id, { x: 2, y: 1, zone: ZONE_ID });
+    world.occupancy.set(`${ZONE_ID},2,1`, id);
 
     const bob = new FakeConnection();
     server.handleConnection(bob);

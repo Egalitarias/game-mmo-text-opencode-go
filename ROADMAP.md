@@ -24,13 +24,13 @@ All ISSUES.md items resolved.
 
 ## Phase 2: Roguelike Core
 
-**Status:** Not started
+**Status:** In progress
 
 ### Procedural Map Generation
-- Replace static room with BSP or cellular automata caves
+- ✓ Replace static room with BSP or cellular automata caves
 - Hand-authored vaults spliced into generated maps
-- Seeded per zone for reproducibility
-- Snapshot tests per seed to track algorithm changes
+- ✓ Seeded per zone for reproducibility
+- ✓ Snapshot tests per seed to track algorithm changes
 
 ### Field of View (FOV)
 - Per-entity FOV computation (`computeFov(world, entity) -> Set<TileId>`)
