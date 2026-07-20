@@ -31,4 +31,14 @@ describe("keyToMove", () => {
     expect(keyToMove("Enter")).toBeNull();
     expect(keyToMove("Space")).toBeNull();
   });
+
+  it("reserves yubn keys for diagonal movement (roguelike tradition)", () => {
+    // These keys follow vi/vim roguelike convention and are deliberately reserved
+    // for movement. Future text commands (yell, use, build, name) should use
+    // different keys or require modifiers (e.g., Ctrl+Y) to avoid collision.
+    expect(keyToMove("KeyY")).toEqual({ kind: "move", dx: -1, dy: -1 });
+    expect(keyToMove("KeyU")).toEqual({ kind: "move", dx: 1, dy: -1 });
+    expect(keyToMove("KeyB")).toEqual({ kind: "move", dx: -1, dy: 1 });
+    expect(keyToMove("KeyN")).toEqual({ kind: "move", dx: 1, dy: 1 });
+  });
 });

@@ -159,7 +159,9 @@ classic `ws` `isAlive` recipe).
 - **Keyboard nits** (`packages/client/src/input/keys.ts`,
   `packages/client/src/main.ts`): **FIXED:** switched from `e.key` to `e.code`
   for layout independence — Shift/CapsLock no longer break movement. The `yubn`
-  diagonals will still collide with future command letters — decide deliberately.
+  diagonals follow roguelike tradition (from vi/vim) and are deliberately reserved
+  for movement; future text commands should use different keys or require modifiers
+  (e.g., Ctrl+Y for yell) to avoid collision. Documented in code and tests.
 - **No SIGTERM handler** (`packages/server/src/index.ts:31`) — **FIXED:**
   extracted `gateway/shutdown.ts` with idempotent handler registered for both
   SIGINT and SIGTERM; covered by 5 unit tests.

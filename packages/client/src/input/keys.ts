@@ -1,6 +1,13 @@
 import type { Command } from "@game/shared";
 
-/** Pure key code → move mapping: arrows, wasd, diagonals (yubn). Uses e.code for layout independence. */
+/**
+ * Pure key code → move mapping: arrows, wasd, diagonals (yubn).
+ * Uses e.code for layout independence.
+ *
+ * The yubn diagonal keys follow roguelike tradition (from vi/vim) and are
+ * deliberately reserved for movement. Future text commands should use different
+ * keys or require a modifier (e.g., Ctrl+Y for yell) to avoid collision.
+ */
 export function keyToMove(code: string): Command | null {
   switch (code) {
     case "ArrowUp":
