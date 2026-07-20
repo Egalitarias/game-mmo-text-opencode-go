@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { PROTOCOL_VERSION, makeWorld } from "@game/shared";
+import { PROTOCOL_VERSION, makeWorld, generateZone } from "@game/shared";
 import type { ServerMessage, Zone } from "@game/shared";
 import type { Connection } from "../src/gateway/connection.js";
-import { GameServer, ZONE_ID } from "../src/sim/gameServer.js";
+import { GameServer, ZONE_ID, ZONE_SEED } from "../src/sim/gameServer.js";
 import { ChatHistory } from "../src/gateway/chat.js";
 
 class FakeConnection implements Connection {
@@ -27,7 +27,10 @@ class FakeConnection implements Connection {
 }
 
 function makeServer(now = () => 1000) {
-  return new GameServer({ now });
+  // Create a world with a zone but no monsters for predictable testing
+  const world = makeWorld();
+  world.zones.set(ZONE_ID, generateZone(ZONE_ID, 40, 20, ZONE_SEED));
+  return new GameServer({ now, world });
 }
 
 function join(server: GameServer, handle: string): FakeConnection {

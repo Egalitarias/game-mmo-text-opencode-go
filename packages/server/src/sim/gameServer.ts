@@ -5,6 +5,7 @@ import {
   parseClientMessage,
   removeEntity,
   spawnPlayer,
+  spawnMonster,
   stepWorld,
   createRng,
   computeFov,
@@ -57,6 +58,31 @@ export class GameServer {
     this.world = opts.world ?? makeWorld();
     if (!this.world.zones.has(ZONE_ID)) {
       this.world.zones.set(ZONE_ID, generateZone(ZONE_ID, 40, 20, ZONE_SEED));
+      this.spawnMonsters(ZONE_ID);
+    }
+  }
+
+  private spawnMonsters(zoneId: ZoneId): void {
+    const zone = this.world.zones.get(zoneId);
+    if (!zone) return;
+
+    const rng = createRng(ZONE_SEED ^ 0xDEAD);
+    const monsterCount = 5 + rng.int(6); // 5-10 monsters
+
+    for (let i = 0; i < monsterCount; i++) {
+      // Try random positions until we find a valid spawn point
+      for (let attempt = 0; attempt < 20; attempt++) {
+        const x = 1 + rng.int(zone.width - 2);
+        const y = 1 + rng.int(zone.height - 2);
+        
+        const aiKinds: Array<"aggressive" | "wander" | "flee"> = ["aggressive", "wander", "flee"];
+        const aiKind = aiKinds[rng.int(aiKinds.length)]!;
+        const glyphs: Record<string, string> = { aggressive: "g", wander: "w", flee: "f" };
+        const glyph = glyphs[aiKind] ?? "m";
+        
+        const monsterId = spawnMonster(this.world, zoneId, x, y, glyph, aiKind, 100);
+        if (monsterId !== undefined) break;
+      }
     }
   }
 

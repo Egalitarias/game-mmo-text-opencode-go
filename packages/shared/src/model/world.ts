@@ -28,12 +28,23 @@ export interface PlayerSession {
   connectedAt: number;
 }
 
+export interface Ai {
+  kind: "aggressive" | "wander" | "flee";
+}
+
+export interface Energy {
+  current: number;
+  speed: number;
+}
+
 export interface World {
   tick: number;
   zones: Map<ZoneId, Zone>;
   entities: Map<EntityId, Entity>;
   positions: Map<EntityId, Position>;
   players: Map<EntityId, PlayerSession>;
+  ais: Map<EntityId, Ai>;
+  energies: Map<EntityId, Energy>;
   nextEntityId: EntityId;
   /** Occupancy index: "zone,x,y" → EntityId for O(1) lookups. */
   occupancy: Map<string, EntityId>;
@@ -46,6 +57,8 @@ export function makeWorld(): World {
     entities: new Map(),
     positions: new Map(),
     players: new Map(),
+    ais: new Map(),
+    energies: new Map(),
     nextEntityId: 1,
     occupancy: new Map(),
   };
@@ -89,6 +102,30 @@ export function spawnPlayer(
   return undefined;
 }
 
+/** Spawn a monster entity at the specified position. */
+export function spawnMonster(
+  world: World,
+  zoneId: ZoneId,
+  x: number,
+  y: number,
+  glyph: string,
+  aiKind: Ai["kind"],
+  speed: number = 100,
+): EntityId | undefined {
+  const zone = world.zones.get(zoneId);
+  if (!zone) return undefined;
+  if (!isWalkable(zone, x, y)) return undefined;
+  if (entityAt(world, zoneId, x, y)) return undefined;
+
+  const id = world.nextEntityId++;
+  world.entities.set(id, { id, glyph });
+  world.positions.set(id, { x, y, zone: zoneId });
+  world.ais.set(id, { kind: aiKind });
+  world.energies.set(id, { current: 0, speed });
+  world.occupancy.set(occupancyKey(zoneId, x, y), id);
+  return id;
+}
+
 export function removeEntity(world: World, id: EntityId): void {
   const pos = world.positions.get(id);
   if (pos) {
@@ -97,6 +134,8 @@ export function removeEntity(world: World, id: EntityId): void {
   world.entities.delete(id);
   world.positions.delete(id);
   world.players.delete(id);
+  world.ais.delete(id);
+  world.energies.delete(id);
 }
 
 export function entityAt(world: World, zoneId: ZoneId, x: number, y: number): EntityId | undefined {

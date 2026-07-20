@@ -39,9 +39,11 @@ All ISSUES.md items resolved.
 - Anti-cheat: hide entities outside player's view
 
 ### Monsters with AI
-- Monster entities with `Ai` component (`aggressive | wander | flee`)
-- Energy system for speed modeling (fast monsters act more often)
-- Energy-threshold system: entities act when energy ≥ 100, then energy -= 100
+- ✓ Monster entities with `Ai` component (`aggressive | wander | flee`)
+- ✓ Energy system for speed modeling (fast monsters act more often)
+- ✓ Energy-threshold system: entities act when energy ≥ 100, then energy -= 100
+- ✓ Monster spawning on zone creation
+- ✓ AI decision-making integrated with game loop
 
 ### Melee Combat
 - Attack resolution on bump into entities (`resolveAttack`)
