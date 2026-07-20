@@ -7,6 +7,7 @@ import {
   spawnPlayer,
   stepWorld,
   createRng,
+  computeFov,
 } from "@game/shared";
 import type {
   Command,
@@ -26,6 +27,7 @@ export const ZONE_SEED = 1337;
 const CHAT_BURST = 4;
 const CHAT_REFILL_PER_SEC = 1;
 const CHAT_HISTORY_SIZE = 50;
+const FOV_RADIUS = 10;
 
 interface ClientState {
   entityId?: EntityId;
@@ -141,7 +143,7 @@ export class GameServer {
       tick: this.world.tick,
       roster: this.onlineHandles(),
     });
-    conn.send({ t: "snapshot", tick: this.world.tick, entities: this.buildViews() });
+    conn.send({ t: "snapshot", tick: this.world.tick, entities: this.buildViews(entityId) });
     for (const msg of this.chatHistory.recent(globalChatKey())) conn.send(msg);
     for (const msg of this.chatHistory.recent(zoneChatKey(ZONE_ID))) conn.send(msg);
 
@@ -203,7 +205,12 @@ export class GameServer {
     const events = stepWorld(this.world, cmds, rng);
     if (events.length > 0) {
       this.broadcastAll({ t: "events", tick: this.world.tick, events });
-      this.broadcastAll({ t: "snapshot", tick: this.world.tick, entities: this.buildViews() });
+      // Send per-player FOV-filtered snapshots
+      for (const [conn, state] of this.clients) {
+        if (state.entityId === undefined) continue;
+        const entities = this.buildViews(state.entityId);
+        conn.send({ t: "snapshot", tick: this.world.tick, entities });
+      }
     }
   }
 
@@ -231,11 +238,19 @@ export class GameServer {
     return [...this.world.players.values()].map((p) => p.handle);
   }
 
-  private buildViews(): EntityView[] {
+  private buildViews(forEntityId?: EntityId): EntityView[] {
     const views: EntityView[] = [];
+    const fov = forEntityId !== undefined ? computeFov(this.world, forEntityId, FOV_RADIUS) : null;
+    
     for (const [id, entity] of this.world.entities) {
       const pos = this.world.positions.get(id);
       if (!pos) continue;
+      
+      // If FOV filtering is enabled, only include entities within the viewer's FOV
+      if (fov && !fov.has(`${pos.x},${pos.y}`)) {
+        continue;
+      }
+      
       const handle = this.world.players.get(id)?.handle;
       views.push(handle === undefined ? { ...entity, pos } : { ...entity, pos, handle });
     }

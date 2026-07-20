@@ -33,9 +33,9 @@ All ISSUES.md items resolved.
 - ✓ Snapshot tests per seed to track algorithm changes
 
 ### Field of View (FOV)
-- Per-entity FOV computation (`computeFov(world, entity) -> Set<TileId>`)
-- Symmetric FOV (if A sees B, B sees A)
-- Interest management: clients only receive entities in their FOV + margin
+- ✓ Per-entity FOV computation (`computeFov(world, entity) -> Set<TileId>`)
+- ✓ Symmetric FOV (if A sees B, B sees A)
+- ✓ Interest management: clients only receive entities in their FOV + margin
 - Anti-cheat: hide entities outside player's view
 
 ### Monsters with AI
