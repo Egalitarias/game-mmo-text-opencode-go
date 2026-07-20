@@ -1,12 +1,13 @@
 import type { EntityId, World } from "../model/world.js";
 import type { Rng } from "../rng/rng.js";
 import type { Event } from "./types.js";
-import { removeEntity } from "../model/world.js";
+import { removeEntity, respawnPlayer } from "../model/world.js";
 
 /**
  * Resolve a melee attack between two entities.
  * Damage = max(1, attacker.attack - defender.defense + random variance)
  * Returns attack event and death event if target dies.
+ * Players respawn immediately; monsters are removed.
  */
 export function resolveAttack(
   world: World,
@@ -34,7 +35,16 @@ export function resolveAttack(
   // Check if target died
   if (targetStats.hp <= 0) {
     events.push({ kind: "died", entityId: targetId });
-    removeEntity(world, targetId);
+    
+    // Players respawn, monsters are removed
+    if (world.players.has(targetId)) {
+      const respawnPos = respawnPlayer(world, targetId);
+      if (respawnPos) {
+        events.push({ kind: "respawned", entityId: targetId, at: respawnPos });
+      }
+    } else {
+      removeEntity(world, targetId);
+    }
   }
 
   return events;

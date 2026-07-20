@@ -10,4 +10,5 @@ export type Event =
   | { kind: "joined"; entityId: EntityId; handle: string }
   | { kind: "left"; entityId: EntityId; handle: string }
   | { kind: "attacked"; attackerId: EntityId; targetId: EntityId; damage: number }
-  | { kind: "died"; entityId: EntityId };
+  | { kind: "died"; entityId: EntityId }
+  | { kind: "respawned"; entityId: EntityId; at: Position };

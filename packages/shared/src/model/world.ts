@@ -156,6 +156,45 @@ export function removeEntity(world: World, id: EntityId): void {
   world.energies.delete(id);
 }
 
+/**
+ * Respawn a player at a safe location with full HP.
+ * Returns the new position, or undefined if no spawn point is available.
+ */
+export function respawnPlayer(world: World, playerId: EntityId): Position | undefined {
+  const player = world.players.get(playerId);
+  if (!player) return undefined;
+
+  // Find a spawn point (first walkable tile in any zone)
+  for (const [zoneId, zone] of world.zones) {
+    for (let y = 0; y < zone.height; y++) {
+      for (let x = 0; x < zone.width; x++) {
+        if (isWalkable(zone, x, y) && !entityAt(world, zoneId, x, y)) {
+          // Remove old position from occupancy
+          const oldPos = world.positions.get(playerId);
+          if (oldPos) {
+            world.occupancy.delete(occupancyKey(oldPos.zone, oldPos.x, oldPos.y));
+          }
+          
+          // Set new position
+          const newPos: Position = { x, y, zone: zoneId };
+          world.positions.set(playerId, newPos);
+          world.occupancy.set(occupancyKey(zoneId, x, y), playerId);
+          
+          // Reset HP to max
+          const stats = world.stats.get(playerId);
+          if (stats) {
+            stats.hp = stats.maxHp;
+          }
+          
+          return newPos;
+        }
+      }
+    }
+  }
+  
+  return undefined;
+}
+
 export function entityAt(world: World, zoneId: ZoneId, x: number, y: number): EntityId | undefined {
   return world.occupancy.get(occupancyKey(zoneId, x, y));
 }

@@ -52,8 +52,10 @@ All ISSUES.md items resolved.
 - Combat events in message log ("You hit the goblin!")
 
 ### Death and Respawn
-- Entity death when HP reaches 0
-- Respawn mechanics for players
+- ✓ Entity death when HP reaches 0
+- ✓ Respawn mechanics for players (immediate respawn at safe location with full HP)
+- ✓ Monsters are removed from world when killed
+- ✓ Players stay connected and can continue playing after death
 - Loot drops (if items exist)
 
 ---
