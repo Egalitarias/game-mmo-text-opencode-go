@@ -27,6 +27,8 @@ export function tryMove(
   if (entityAt(world, pos.zone, nx, ny) !== undefined) return [{ kind: "bumped", entityId }];
 
   const to: Position = { x: nx, y: ny, zone: pos.zone };
+  world.occupancy.delete(`${pos.zone},${pos.x},${pos.y}`);
+  world.occupancy.set(`${to.zone},${to.x},${to.y}`, entityId);
   world.positions.set(entityId, to);
   return [{ kind: "moved", entityId, to }];
 }

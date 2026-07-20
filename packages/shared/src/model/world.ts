@@ -35,6 +35,8 @@ export interface World {
   positions: Map<EntityId, Position>;
   players: Map<EntityId, PlayerSession>;
   nextEntityId: EntityId;
+  /** Occupancy index: "zone,x,y" → EntityId for O(1) lookups. */
+  occupancy: Map<string, EntityId>;
 }
 
 export function makeWorld(): World {
@@ -45,6 +47,7 @@ export function makeWorld(): World {
     positions: new Map(),
     players: new Map(),
     nextEntityId: 1,
+    occupancy: new Map(),
   };
 }
 
@@ -55,6 +58,10 @@ export function tileAt(zone: Zone, x: number, y: number): Tile | undefined {
 
 export function isWalkable(zone: Zone, x: number, y: number): boolean {
   return tileAt(zone, x, y) === "floor";
+}
+
+function occupancyKey(zoneId: ZoneId, x: number, y: number): string {
+  return `${zoneId},${x},${y}`;
 }
 
 /** Spawn a player entity on the first walkable tile of the zone (scan order). */
@@ -74,6 +81,7 @@ export function spawnPlayer(
         world.entities.set(id, { id, glyph: "@" });
         world.positions.set(id, { x, y, zone: zoneId });
         world.players.set(id, { handle, connectedAt: now });
+        world.occupancy.set(occupancyKey(zoneId, x, y), id);
         return id;
       }
     }
@@ -82,14 +90,15 @@ export function spawnPlayer(
 }
 
 export function removeEntity(world: World, id: EntityId): void {
+  const pos = world.positions.get(id);
+  if (pos) {
+    world.occupancy.delete(occupancyKey(pos.zone, pos.x, pos.y));
+  }
   world.entities.delete(id);
   world.positions.delete(id);
   world.players.delete(id);
 }
 
 export function entityAt(world: World, zoneId: ZoneId, x: number, y: number): EntityId | undefined {
-  for (const [id, pos] of world.positions) {
-    if (pos.zone === zoneId && pos.x === x && pos.y === y) return id;
-  }
-  return undefined;
+  return world.occupancy.get(occupancyKey(zoneId, x, y));
 }

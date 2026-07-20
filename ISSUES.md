@@ -150,8 +150,9 @@ classic `ws` `isAlive` recipe).
 ## Low / notes
 
 - **`entityAt` is O(n) per lookup** (`packages/shared/src/model/world.ts:90`) —
-  called per move and per spawn tile, so spawning is O(n·w·h). Fine for the
-  skeleton; an occupancy index (`Map<"zone,x,y", EntityId>`) is the phase-2 fix.
+  **FIXED:** added occupancy index (`Map<"zone,x,y", EntityId>`) to World, making
+  `entityAt` O(1). Index is maintained by `spawnPlayer`, `removeEntity`, and
+  `tryMove`. Covered by 5 new tests verifying index operations.
 - **Full snapshot broadcast every tick** — O(players²) bytes, documented as
   phase-1-only. **FIXED:** snapshot is now skipped when the tick produced zero
   events (regression test added).
