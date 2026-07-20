@@ -9,6 +9,7 @@ import {
   createRng,
 } from "@game/shared";
 import type {
+  Command,
   EntityId,
   EntityView,
   QueuedCommand,
@@ -45,7 +46,8 @@ export class GameServer {
   private readonly now: () => number;
   private readonly clients = new Map<Connection, ClientState>();
   private readonly chatHistory = new ChatHistory(CHAT_HISTORY_SIZE);
-  private commandQueue: QueuedCommand[] = [];
+  /** One queued command per entity per tick — last write wins (ARCHITECTURE.md §5.1). */
+  private readonly commandQueue = new Map<EntityId, Command>();
   private timer: ReturnType<typeof setInterval> | undefined;
 
   constructor(opts: GameServerOptions = {}) {
@@ -155,13 +157,13 @@ export class GameServer {
     );
   }
 
-  private onCmd(conn: Connection, seq: number, cmd: QueuedCommand["cmd"]): void {
+  private onCmd(conn: Connection, seq: number, cmd: Command): void {
     const state = this.clients.get(conn);
     if (state?.entityId === undefined) {
       conn.send({ t: "reject", seq, reason: "not logged in" });
       return;
     }
-    this.commandQueue.push({ entityId: state.entityId, cmd });
+    this.commandQueue.set(state.entityId, cmd);
   }
 
   private onChat(conn: Connection, channel: "zone" | "global", text: string): void {
@@ -192,8 +194,11 @@ export class GameServer {
 
   /** Advance one tick. Exposed for tests; `start` drives it with a timer. */
   tick(): void {
-    const cmds = this.commandQueue;
-    this.commandQueue = [];
+    const cmds: QueuedCommand[] = [...this.commandQueue].map(([entityId, cmd]) => ({
+      entityId,
+      cmd,
+    }));
+    this.commandQueue.clear();
     const rng = createRng((ZONE_SEED << 16) ^ this.world.tick);
     const events = stepWorld(this.world, cmds, rng);
     if (events.length > 0) {

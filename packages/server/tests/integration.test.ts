@@ -113,6 +113,24 @@ describe("movement", () => {
     expect(conn.last("events").events).toContainEqual(expect.objectContaining({ kind: "moved" }));
   });
 
+  it("applies at most one command per entity per tick (last write wins)", () => {
+    const server = makeServer();
+    const conn = join(server, "Alice");
+    const before = conn.last("snapshot").entities[0]!.pos;
+
+    // A scripted client flooding commands must not outrun keyboard players.
+    for (let i = 0; i < 10; i++) {
+      server.handleMessage(
+        conn,
+        JSON.stringify({ t: "cmd", seq: i, cmd: { kind: "move", dx: 1, dy: 0 } }),
+      );
+    }
+    server.tick();
+
+    const after = conn.last("snapshot").entities[0]!.pos;
+    expect(after).toEqual({ x: before.x + 1, y: before.y, zone: "cave" });
+  });
+
   it("rejects commands before login", () => {
     const server = makeServer();
     const conn = new FakeConnection();

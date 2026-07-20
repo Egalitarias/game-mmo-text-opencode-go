@@ -7,9 +7,12 @@ severity within each group. Each entry: symptom, location, and suggested fix.
 
 ## High
 
-### 1. Speed hack: every queued command applies each tick
+### 1. Speed hack: every queued command applies each tick — **FIXED**
 
 `packages/server/src/sim/gameServer.ts` (`onCmd`, `tick`)
+
+> Fixed: the command queue is now a `Map<EntityId, Command>` (last-write-wins),
+> with a regression test covering the flood case.
 
 `onCmd` appends to `commandQueue` and `tick()` drains **all** queued commands.
 Sending 10 move commands between ticks moves the player 10 tiles in one tick —
