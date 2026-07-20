@@ -2,6 +2,7 @@ import { WebSocketServer } from "ws";
 import { encodeServerMessage } from "@game/shared";
 import { GameServer } from "./sim/gameServer.js";
 import { startHeartbeat } from "./gateway/heartbeat.js";
+import { installShutdownSignals } from "./gateway/shutdown.js";
 import type { Connection } from "./gateway/connection.js";
 
 const HOST = process.env.HOST ?? "127.0.0.1";
@@ -48,9 +49,9 @@ wss.on("connection", (socket) => {
 
 console.log(`game server listening on ws://${HOST}:${PORT}/ws`);
 
-process.on("SIGINT", () => {
-  stopHeartbeat();
-  game.stop();
-  wss.close();
-  process.exit(0);
+installShutdownSignals({
+  stopHeartbeat,
+  stopGame: () => game.stop(),
+  closeServer: () => wss.close(),
+  exit: (code) => process.exit(code),
 });
