@@ -1,5 +1,5 @@
 import { WebSocketServer } from "ws";
-import { encodeServerMessage } from "@game/shared";
+import { encodeServerMessageBinary, decodeClientMessage } from "@game/shared";
 import { GameServer } from "./sim/gameServer.js";
 import { startHeartbeat } from "./gateway/heartbeat.js";
 import { installShutdownSignals } from "./gateway/shutdown.js";
@@ -34,14 +34,17 @@ const stopHeartbeat = startHeartbeat(wss, HEARTBEAT_MS);
 wss.on("connection", (socket) => {
   const conn: Connection = {
     send: (msg) => {
-      if (socket.readyState === socket.OPEN) socket.send(encodeServerMessage(msg));
+      if (socket.readyState === socket.OPEN) socket.send(encodeServerMessageBinary(msg));
     },
     close: () => socket.close(),
   };
   game.handleConnection(conn);
   socket.on("message", (data: Buffer) => {
     try {
-      game.handleMessage(conn, data.toString());
+      const decoded = decodeClientMessage(new Uint8Array(data));
+      if (decoded) {
+        game.handleMessage(conn, JSON.stringify(decoded));
+      }
     } catch (err) {
       // A bad message must never take down the process.
       console.error("message handler error", err);

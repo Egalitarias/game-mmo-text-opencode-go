@@ -9,6 +9,7 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { WebSocket } from "ws";
+import { encode, decode } from "@msgpack/msgpack";
 import { EdgeGateway } from "../src/gateway/edgeGateway.js";
 
 // Mock zone worker server
@@ -36,7 +37,7 @@ class MockZoneWorker {
 
   sendMessage(message: any): void {
     if (this.socket) {
-      this.socket.send(JSON.stringify(message));
+      this.socket.send(encode(message));
     }
   }
 }
@@ -171,7 +172,7 @@ describe("EdgeGateway", () => {
         initialZone: "cave",
       };
 
-      client.send(JSON.stringify(helloMessage));
+      client.send(encode(helloMessage));
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // In a real test, we'd verify the zone worker received the message
@@ -185,7 +186,7 @@ describe("EdgeGateway", () => {
       
       const messages: any[] = [];
       client.on("message", (data) => {
-        messages.push(JSON.parse(data.toString()));
+        messages.push(decode(data));
       });
 
       await new Promise<void>((resolve) => {
@@ -193,7 +194,7 @@ describe("EdgeGateway", () => {
       });
 
       // Send command before hello
-      client.send(JSON.stringify({
+      client.send(encode({
         t: "cmd",
         seq: 1,
         cmd: { kind: "move", dx: 1, dy: 0 },
@@ -213,7 +214,7 @@ describe("EdgeGateway", () => {
       
       const messages: any[] = [];
       client.on("message", (data) => {
-        messages.push(JSON.parse(data.toString()));
+        messages.push(decode(data));
       });
 
       await new Promise<void>((resolve) => {
@@ -251,7 +252,7 @@ describe("EdgeGateway", () => {
       });
 
       // Send hello to establish session
-      client.send(JSON.stringify({
+      client.send(encode({
         t: "hello",
         handle: "TestPlayer",
         initialZone: "cave",
@@ -394,7 +395,7 @@ describe("EdgeGateway", () => {
       });
 
       // Send hello for non-existent zone
-      client.send(JSON.stringify({
+      client.send(encode({
         t: "hello",
         handle: "TestPlayer",
         initialZone: "nonexistent",

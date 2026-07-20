@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@game/shared": "workspace:*",
+    "@msgpack/msgpack": "^3.0.0",
     "ws": "^8.18.2"
   },
   "devDependencies": {

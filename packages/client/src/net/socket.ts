@@ -1,4 +1,5 @@
 import type { ClientMessage, ServerMessage } from "@game/shared";
+import { encodeClientMessage, decodeServerMessage } from "@game/shared";
 
 export interface SocketHandlers {
   onMessage(msg: ServerMessage): void;
@@ -8,7 +9,7 @@ export interface SocketHandlers {
 
 const RECONNECT_MS = 1000;
 
-/** WebSocket wrapper: JSON protocol, auto-reconnect, no game logic. */
+/** WebSocket wrapper: Binary protocol (MessagePack), auto-reconnect, no game logic. */
 export class GameSocket {
   private ws: WebSocket | undefined;
 
@@ -26,16 +27,14 @@ export class GameSocket {
       return;
     }
     const ws = new WebSocket(this.url);
+    ws.binaryType = "arraybuffer";
     this.ws = ws;
     ws.onopen = () => this.handlers.onOpen();
-    ws.onmessage = (ev: MessageEvent<string>) => {
-      let msg: ServerMessage;
-      try {
-        msg = JSON.parse(ev.data) as ServerMessage;
-      } catch {
-        return; // drop malformed frames
+    ws.onmessage = (ev: MessageEvent<ArrayBuffer>) => {
+      const msg = decodeServerMessage(new Uint8Array(ev.data));
+      if (msg) {
+        this.handlers.onMessage(msg);
       }
-      this.handlers.onMessage(msg);
     };
     ws.onclose = () => {
       this.handlers.onClose();
@@ -48,6 +47,8 @@ export class GameSocket {
   }
 
   send(msg: ClientMessage): void {
-    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg));
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(encodeClientMessage(msg));
+    }
   }
 }

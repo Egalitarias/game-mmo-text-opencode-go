@@ -10,7 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@game/shared": "workspace:*"
+    "@game/shared": "workspace:*",
+    "@msgpack/msgpack": "^3.0.0"
   },
   "devDependencies": {
     "jsdom": "^26.1.0",

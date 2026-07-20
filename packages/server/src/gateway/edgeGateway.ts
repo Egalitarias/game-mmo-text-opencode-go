@@ -1,4 +1,5 @@
 import { WebSocketServer, WebSocket } from "ws";
+import { encode, decode } from "@msgpack/msgpack";
 import type { EntityId, ZoneId } from "@game/shared";
 
 export interface GatewayConfig {
@@ -114,7 +115,7 @@ export class EdgeGateway {
     this.sessions.set(clientId, session);
 
     socket.on("message", (data: Buffer) => {
-      this.handleClientMessage(session, data.toString());
+      this.handleClientMessage(session, data);
     });
 
     socket.on("close", () => {
@@ -127,33 +128,33 @@ export class EdgeGateway {
     });
   }
 
-  private handleClientMessage(session: ClientSession, message: string): void {
+  private handleClientMessage(session: ClientSession, data: Buffer): void {
     try {
-      const parsed = JSON.parse(message) as ClientMessage;
+      const decoded = decode(data) as ClientMessage;
 
       // Handle hello message to establish session
-      if (parsed.t === "hello") {
-        this.handleHelloMessage(session, parsed);
+      if (decoded.t === "hello") {
+        this.handleHelloMessage(session, decoded);
         return;
       }
 
       // Route message to appropriate zone worker
       if (session.currentZone) {
         this.routeToZone(session.currentZone, {
-          ...parsed,
+          ...decoded,
           clientId: session.clientId,
           entityId: session.entityId,
         });
       } else {
         // No zone assigned yet, reject
-        session.socket.send(JSON.stringify({
+        session.socket.send(encode({
           t: "error",
           message: "Not connected to a zone",
         }));
       }
     } catch (error) {
       console.error(`Failed to parse message from ${session.clientId}:`, error);
-      session.socket.send(JSON.stringify({
+      session.socket.send(encode({
         t: "error",
         message: "Invalid message format",
       }));
@@ -199,7 +200,7 @@ export class EdgeGateway {
         this.zoneConnections.set(zoneId, socket);
 
         socket.on("message", (data: Buffer) => {
-          this.handleZoneMessage(zoneId, data.toString());
+          this.handleZoneMessage(zoneId, data);
         });
 
         socket.on("close", () => {
@@ -222,9 +223,9 @@ export class EdgeGateway {
     });
   }
 
-  private handleZoneMessage(zoneId: ZoneId, message: string): void {
+  private handleZoneMessage(zoneId: ZoneId, data: Buffer): void {
     try {
-      const parsed = JSON.parse(message) as ZoneMessage;
+      const parsed = decode(data) as ZoneMessage;
 
       // Route message to appropriate client
       if (parsed.clientId) {
@@ -240,13 +241,13 @@ export class EdgeGateway {
           }
 
           // Forward message to client
-          session.socket.send(JSON.stringify(parsed));
+          session.socket.send(encode(parsed));
         }
       } else if (parsed.t === "broadcast") {
         // Broadcast to all clients in this zone
         for (const session of this.sessions.values()) {
           if (session.currentZone === zoneId) {
-            session.socket.send(JSON.stringify(parsed.data));
+            session.socket.send(encode(parsed.data));
           }
         }
       }
@@ -258,7 +259,7 @@ export class EdgeGateway {
   private routeToZone(zoneId: ZoneId, message: ClientMessage): void {
     const connection = this.zoneConnections.get(zoneId);
     if (connection && connection.readyState === WebSocket.OPEN) {
-      connection.send(JSON.stringify(message));
+      connection.send(encode(message));
     } else {
       console.error(`No connection to zone worker ${zoneId}`);
     }

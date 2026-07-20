@@ -161,9 +161,14 @@ All ISSUES.md items resolved.
 - ✓ Automatic entity tracking and cleanup
 
 ### Binary Protocol
-- Replace JSON with MessagePack
-- Protocol versioning allows swap without breaking clients
-- Bandwidth reduction for production scale
+- ✓ Replace JSON with MessagePack
+- ✓ Protocol versioning allows swap without breaking clients
+- ✓ Bandwidth reduction for production scale
+- ✓ Binary encoding/decoding functions in shared protocol module
+- ✓ Client socket uses MessagePack for all communication
+- ✓ Server gateway uses MessagePack for client and zone worker communication
+- ✓ Main server uses MessagePack for WebSocket communication
+- ✓ All tests updated to use binary protocol
 
 ### Canvas2D Renderer
 - Replace DOM grid with Canvas2D behind same `Renderer` interface

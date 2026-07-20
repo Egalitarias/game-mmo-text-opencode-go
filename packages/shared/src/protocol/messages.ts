@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { encode, decode } from "@msgpack/msgpack";
 import type { EntityId, Position } from "../model/world.js";
 import type { Command, Event } from "../rules/types.js";
 
@@ -78,6 +79,22 @@ export function parseClientMessage(data: unknown): ClientMessage | null {
   return result.success ? result.data : null;
 }
 
+/** Encode a client message to binary format using MessagePack. */
+export function encodeClientMessage(msg: ClientMessage): Uint8Array {
+  return encode(msg);
+}
+
+/** Decode binary data to a typed ClientMessage, or null if invalid. */
+export function decodeClientMessage(data: Uint8Array): ClientMessage | null {
+  try {
+    const decoded = decode(data);
+    const result = clientMessageSchema.safeParse(decoded);
+    return result.success ? result.data : null;
+  } catch {
+    return null;
+  }
+}
+
 // ── server → client ──────────────────────────────────────────────────────────
 
 export interface EntityView {
@@ -108,4 +125,20 @@ export type ServerMessage =
 
 export function encodeServerMessage(msg: ServerMessage): string {
   return JSON.stringify(msg);
+}
+
+/** Encode a server message to binary format using MessagePack. */
+export function encodeServerMessageBinary(msg: ServerMessage): Uint8Array {
+  return encode(msg);
+}
+
+/** Decode binary data to a typed ServerMessage, or null if invalid. */
+export function decodeServerMessage(data: Uint8Array): ServerMessage | null {
+  try {
+    const decoded = decode(data);
+    // Server messages don't have a schema validator yet, so we trust the decode
+    return decoded as ServerMessage;
+  } catch {
+    return null;
+  }
 }
