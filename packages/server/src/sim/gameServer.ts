@@ -35,6 +35,8 @@ const FOV_RADIUS = 10;
 interface ClientState {
   entityId?: EntityId;
   chatBucket: TokenBucket;
+  /** Previous entity views for delta calculation */
+  lastSnapshot?: Map<EntityId, EntityView>;
 }
 
 export interface GameServerOptions {
@@ -266,7 +268,14 @@ export class GameServer {
       tick: this.world.tick,
       roster: this.onlineHandles(),
     });
-    conn.send({ t: "snapshot", tick: this.world.tick, entities: this.buildViews(entityId) });
+    
+    // Send initial full snapshot
+    const initialViews = this.buildViews(entityId);
+    conn.send({ t: "snapshot", tick: this.world.tick, entities: initialViews });
+    
+    // Store initial snapshot for delta calculation
+    state.lastSnapshot = new Map(initialViews.map(v => [v.id, v]));
+    
     for (const msg of this.chatHistory.recent(globalChatKey())) conn.send(msg);
     for (const msg of this.chatHistory.recent(zoneChatKey(ZONE_ID))) conn.send(msg);
 
@@ -328,11 +337,21 @@ export class GameServer {
     const events = stepWorld(this.world, cmds, rng);
     if (events.length > 0) {
       this.broadcastAll({ t: "events", tick: this.world.tick, events });
-      // Send per-player FOV-filtered snapshots
+      // Send per-player FOV-filtered deltas
       for (const [conn, state] of this.clients) {
         if (state.entityId === undefined) continue;
-        const entities = this.buildViews(state.entityId);
-        conn.send({ t: "snapshot", tick: this.world.tick, entities });
+        const currentViews = this.buildViews(state.entityId);
+        
+        // Calculate delta from previous snapshot
+        const { changed, removed } = this.calculateDelta(currentViews, state.lastSnapshot);
+        
+        // Only send delta if there are changes
+        if (changed.length > 0 || removed.length > 0) {
+          conn.send({ t: "delta", tick: this.world.tick, changed, removed });
+        }
+        
+        // Update last snapshot for next delta calculation
+        state.lastSnapshot = new Map(currentViews.map(v => [v.id, v]));
       }
     }
   }
@@ -398,6 +417,50 @@ export class GameServer {
       views.push(handle === undefined ? { ...entity, pos } : { ...entity, pos, handle });
     }
     return views;
+  }
+
+  /**
+   * Calculate delta between current and previous entity views.
+   * Returns changed entities and removed entity IDs.
+   */
+  private calculateDelta(
+    current: EntityView[],
+    previous?: Map<EntityId, EntityView>
+  ): { changed: EntityView[]; removed: EntityId[] } {
+    const changed: EntityView[] = [];
+    const removed: EntityId[] = [];
+    const currentIds = new Set<EntityId>();
+
+    // Find changed or new entities
+    for (const view of current) {
+      currentIds.add(view.id);
+      const prev = previous?.get(view.id);
+      
+      if (!prev) {
+        // New entity
+        changed.push(view);
+      } else if (
+        prev.pos.x !== view.pos.x ||
+        prev.pos.y !== view.pos.y ||
+        prev.pos.zone !== view.pos.zone ||
+        prev.glyph !== view.glyph ||
+        prev.handle !== view.handle
+      ) {
+        // Changed entity
+        changed.push(view);
+      }
+    }
+
+    // Find removed entities
+    if (previous) {
+      for (const id of previous.keys()) {
+        if (!currentIds.has(id)) {
+          removed.push(id);
+        }
+      }
+    }
+
+    return { changed, removed };
   }
 
   private broadcastAll(msg: ServerMessage, except?: Connection): void {

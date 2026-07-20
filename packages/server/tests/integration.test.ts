@@ -112,8 +112,11 @@ describe("movement", () => {
     );
     server.tick();
 
-    const after = conn.last("snapshot").entities[0]!.pos;
-    expect(after).toEqual({ x: before.x + 1, y: before.y, zone: "cave" });
+    // After initial snapshot, subsequent updates come as deltas
+    const delta = conn.last("delta");
+    const changedEntity = delta.changed.find(e => e.id === conn.last("welcome").entityId);
+    expect(changedEntity).toBeDefined();
+    expect(changedEntity!.pos).toEqual({ x: before.x + 1, y: before.y, zone: "cave" });
     expect(conn.last("events").events).toContainEqual(expect.objectContaining({ kind: "moved" }));
   });
 
@@ -131,8 +134,11 @@ describe("movement", () => {
     }
     server.tick();
 
-    const after = conn.last("snapshot").entities[0]!.pos;
-    expect(after).toEqual({ x: before.x + 1, y: before.y, zone: "cave" });
+    // After initial snapshot, subsequent updates come as deltas
+    const delta = conn.last("delta");
+    const changedEntity = delta.changed.find(e => e.id === conn.last("welcome").entityId);
+    expect(changedEntity).toBeDefined();
+    expect(changedEntity!.pos).toEqual({ x: before.x + 1, y: before.y, zone: "cave" });
   });
 
   it("skips snapshot broadcast on idle ticks (no events)", () => {

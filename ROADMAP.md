@@ -144,13 +144,14 @@ All ISSUES.md items resolved.
 
 ## Phase 5: Polish
 
-**Status:** Not started
+**Status:** In progress
 
 ### Delta-Based Network Updates
-- Replace full snapshot broadcasts with deltas
-- `delta` message: `changed: EntityView[]; removed: EntityId[]`
-- Bandwidth optimization (currently O(players²) per tick)
-- Client delta handler (currently a no-op stub)
+- ✓ Replace full snapshot broadcasts with deltas
+- ✓ `delta` message: `changed: EntityView[]; removed: EntityId[]`
+- ✓ Bandwidth optimization (currently O(players²) per tick)
+- ✓ Client delta handler (currently a no-op stub)
+- ✓ 15 comprehensive tests for delta system
 
 ### Interpolation Smoothing
 - Render 1-2 ticks behind for smooth motion

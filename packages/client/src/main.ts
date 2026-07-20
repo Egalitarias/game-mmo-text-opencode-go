@@ -87,6 +87,24 @@ const socket = new GameSocket(wsUrl, {
         state.entities = msg.entities;
         render();
         break;
+      case "delta": {
+        // Apply delta: update changed entities and remove deleted ones
+        const entityMap = new Map(state.entities.map(e => [e.id, e]));
+        
+        // Update or add changed entities
+        for (const changed of msg.changed) {
+          entityMap.set(changed.id, changed);
+        }
+        
+        // Remove deleted entities
+        for (const removedId of msg.removed) {
+          entityMap.delete(removedId);
+        }
+        
+        state.entities = Array.from(entityMap.values());
+        render();
+        break;
+      }
       case "events":
         for (const ev of msg.events) {
           if (ev.kind === "joined") {
@@ -115,8 +133,7 @@ const socket = new GameSocket(wsUrl, {
         }
         break;
       case "pong":
-      case "delta":
-        break; // deltas arrive with the bandwidth work in a later phase
+        break;
     }
   },
 });
