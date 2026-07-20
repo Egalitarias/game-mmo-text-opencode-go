@@ -7,7 +7,13 @@ export interface Position {
   zone: ZoneId;
 }
 
-export type Tile = "floor" | "wall";
+export type Tile = "floor" | "wall" | "stairs_up" | "stairs_down";
+
+export interface ZoneConnection {
+  targetZone: ZoneId;
+  targetX: number;
+  targetY: number;
+}
 
 export interface Zone {
   id: ZoneId;
@@ -15,6 +21,8 @@ export interface Zone {
   height: number;
   /** Row-major tiles, index = y * width + x. */
   tiles: Tile[];
+  /** Connections from stairs to other zones. Key is "x,y" of stairs tile. */
+  connections?: Map<string, ZoneConnection>;
 }
 
 export interface Entity {
@@ -97,7 +105,8 @@ export function tileAt(zone: Zone, x: number, y: number): Tile | undefined {
 }
 
 export function isWalkable(zone: Zone, x: number, y: number): boolean {
-  return tileAt(zone, x, y) === "floor";
+  const tile = tileAt(zone, x, y);
+  return tile === "floor" || tile === "stairs_up" || tile === "stairs_down";
 }
 
 function occupancyKey(zoneId: ZoneId, x: number, y: number): string {
@@ -245,4 +254,38 @@ export function respawnPlayer(world: World, playerId: EntityId): Position | unde
 
 export function entityAt(world: World, zoneId: ZoneId, x: number, y: number): EntityId | undefined {
   return world.occupancy.get(occupancyKey(zoneId, x, y));
+}
+
+/**
+ * Transition an entity from one zone to another.
+ * Returns the new position, or undefined if transition failed.
+ */
+export function transitionZone(
+  world: World,
+  entityId: EntityId,
+  targetZone: ZoneId,
+  targetX: number,
+  targetY: number,
+): Position | undefined {
+  const pos = world.positions.get(entityId);
+  if (!pos) return undefined;
+
+  const zone = world.zones.get(targetZone);
+  if (!zone) return undefined;
+
+  // Check if target position is valid and unoccupied
+  if (!isWalkable(zone, targetX, targetY)) return undefined;
+  if (entityAt(world, targetZone, targetX, targetY)) return undefined;
+
+  // Remove from old zone occupancy
+  world.occupancy.delete(occupancyKey(pos.zone, pos.x, pos.y));
+
+  // Update position
+  const newPos: Position = { x: targetX, y: targetY, zone: targetZone };
+  world.positions.set(entityId, newPos);
+
+  // Add to new zone occupancy
+  world.occupancy.set(occupancyKey(targetZone, targetX, targetY), entityId);
+
+  return newPos;
 }

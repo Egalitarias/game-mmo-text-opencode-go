@@ -57,9 +57,69 @@ export class GameServer {
     this.now = opts.now ?? Date.now;
     this.world = opts.world ?? makeWorld();
     if (!this.world.zones.has(ZONE_ID)) {
-      this.world.zones.set(ZONE_ID, generateZone(ZONE_ID, 40, 20, ZONE_SEED));
-      this.spawnMonsters(ZONE_ID);
+      this.generateZones();
     }
+  }
+
+  private generateZones(): void {
+    // Generate three interconnected zones
+    const zones = [
+      { id: ZONE_ID, width: 40, height: 20, seed: ZONE_SEED },
+      { id: "dungeon", width: 35, height: 25, seed: ZONE_SEED + 1 },
+      { id: "forest", width: 45, height: 22, seed: ZONE_SEED + 2 },
+    ];
+
+    for (const zoneConfig of zones) {
+      const zone = generateZone(zoneConfig.id, zoneConfig.width, zoneConfig.height, zoneConfig.seed);
+      zone.connections = new Map();
+      this.world.zones.set(zoneConfig.id, zone);
+      this.spawnMonsters(zoneConfig.id);
+    }
+
+    // Connect cave -> dungeon (stairs down in cave, stairs up in dungeon)
+    this.connectZones(ZONE_ID, "dungeon", 35, 15, 5, 5);
+    
+    // Connect dungeon -> forest (stairs up in dungeon, stairs down in forest)
+    this.connectZones("dungeon", "forest", 30, 20, 10, 10);
+    
+    // Connect forest -> cave (stairs up in forest, stairs down in cave)
+    this.connectZones("forest", ZONE_ID, 40, 18, 5, 5);
+  }
+
+  private connectZones(
+    fromZone: ZoneId,
+    toZone: ZoneId,
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number
+  ): void {
+    const zone1 = this.world.zones.get(fromZone);
+    const zone2 = this.world.zones.get(toZone);
+    if (!zone1 || !zone2) return;
+
+    // Place stairs in both zones
+    const tileIndex1 = fromY * zone1.width + fromX;
+    const tileIndex2 = toY * zone2.width + toX;
+    
+    zone1.tiles[tileIndex1] = "stairs_down";
+    zone2.tiles[tileIndex2] = "stairs_up";
+
+    // Set up connections
+    if (!zone1.connections) zone1.connections = new Map();
+    if (!zone2.connections) zone2.connections = new Map();
+
+    zone1.connections.set(`${fromX},${fromY}`, {
+      targetZone: toZone,
+      targetX: toX,
+      targetY: toY,
+    });
+
+    zone2.connections.set(`${toX},${toY}`, {
+      targetZone: fromZone,
+      targetX: fromX,
+      targetY: fromY,
+    });
   }
 
   private spawnMonsters(zoneId: ZoneId): void {

@@ -74,10 +74,14 @@ All ISSUES.md items resolved.
 - Item effects (healing, buffs, equipment)
 
 ### Multiple Zones
-- Stairs between zones (up/down)
-- Zone transition mechanics
-- Remove hardcoded `ZONE_ID = "cave"`
-- Zone-specific themes and difficulty
+- ✓ Stairs between zones (up/down)
+- ✓ Zone transition mechanics
+- ✓ Remove hardcoded `ZONE_ID = "cave"`
+- ✓ Zone-specific themes and difficulty
+- ✓ Three interconnected zones: cave, dungeon, forest
+- ✓ Bidirectional stairs with connection mapping
+- ✓ Automatic zone transition on movement
+- Zone change events for client rendering
 
 ### Energy/Speed System
 - Energy component: `current`, `speed`

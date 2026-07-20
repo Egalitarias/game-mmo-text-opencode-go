@@ -7,7 +7,12 @@ export interface FrameView {
   youId: EntityId | undefined;
 }
 
-const TILE_GLYPH: Record<string, string> = { floor: ".", wall: "#" };
+const TILE_GLYPH: Record<string, string> = { 
+  floor: ".", 
+  wall: "#",
+  stairs_up: "<",
+  stairs_down: ">"
+};
 
 /** Build a screen-reader-friendly summary of the game state. */
 export function buildAriaSummary(view: FrameView): string {

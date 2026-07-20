@@ -16,4 +16,5 @@ export type Event =
   | { kind: "died"; entityId: EntityId }
   | { kind: "respawned"; entityId: EntityId; at: Position }
   | { kind: "pickedUp"; entityId: EntityId; item: Item }
-  | { kind: "dropped"; entityId: EntityId; item: Item; at: Position };
+  | { kind: "dropped"; entityId: EntityId; item: Item; at: Position }
+  | { kind: "zone_changed"; entityId: EntityId; from: Position; to: Position };
