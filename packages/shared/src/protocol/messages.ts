@@ -23,6 +23,20 @@ const commandSchema = z.object({
   dy: z.union([z.literal(-1), z.literal(0), z.literal(1)]),
 });
 
+/**
+ * Drift guard: the wire schema and the Command type must be mutually
+ * assignable (identical). Without this, adding a command kind to Command but
+ * not to the schema would compile fine and silently parse-fail at runtime.
+ * (z.ZodType<Command> alone only checks one direction.)
+ */
+type CommandSchemaDriftGuard = [z.infer<typeof commandSchema>, Command] extends [
+  Command,
+  z.infer<typeof commandSchema>,
+]
+  ? true
+  : "Command and commandSchema have drifted apart";
+const _commandDriftGuard: CommandSchemaDriftGuard = true;
+
 const clientMessageSchema = z.discriminatedUnion("t", [
   z.object({
     t: z.literal("hello"),

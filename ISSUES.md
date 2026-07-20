@@ -115,15 +115,15 @@ classic `ws` `isAlive` recipe).
 > `@game/shared` barrel re-exports it, so the public API is unchanged (server
 > and client typecheck untouched).
 
-### 9. Zod schema ↔ TS type drift risk
+### 9. Zod schema ↔ TS type drift risk — **FIXED**
 
 `packages/shared/src/protocol/messages.ts:20-24`
 
-`commandSchema` is hand-written to mirror `Command`. Adding a command kind to
-the type won't touch the schema; new commands silently parse-fail at runtime.
-
-**Fix:** annotate `const commandSchema: z.ZodType<Command> = ...` (or derive
-the type via `z.infer`) so drift is a compile error.
+> Fixed: a compile-time `CommandSchemaDriftGuard` requires the schema output
+> and `Command` to be mutually assignable (identical) — one-directional
+> `z.ZodType<Command>` would have allowed the schema to accept only a subset.
+> Verified: adding a variant to `Command` without touching the schema fails
+> typecheck with a readable message.
 
 ### 10. Client socket robustness — **FIXED**
 
