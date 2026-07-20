@@ -1,6 +1,7 @@
 import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import importPlugin from "eslint-plugin-import";
+import noUnsanitized from "eslint-plugin-no-unsanitized";
 import prettier from "eslint-config-prettier";
 
 export default tseslint.config(
@@ -39,6 +40,14 @@ export default tseslint.config(
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+    },
+  },
+  {
+    // Client renders untrusted chat: textContent only, never innerHTML (§6.4).
+    files: ["packages/client/**/*.ts"],
+    plugins: { "no-unsanitized": noUnsanitized },
+    rules: {
+      "no-unsanitized/property": "error",
     },
   },
   {

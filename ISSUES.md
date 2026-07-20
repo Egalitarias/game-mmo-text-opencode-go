@@ -97,17 +97,14 @@ classic `ws` `isAlive` recipe).
 > the process. Not addressed (noted as acceptable for v1): `hello` flood
 > limiting and a connection cap.
 
-### 7. ARCHITECTURE.md drift from the code
+### 7. ARCHITECTURE.md drift from the code — **FIXED**
 
-- **§5.3** claims rules do "no mutation of input" — `tryMove`, `spawnPlayer`,
-  `stepWorld` all mutate in place (their docstrings say so). Bless the mutation
-  in the doc; events-as-output is the property that matters.
-- **§5.1** "one queued command per entity per tick" — not enforced (see #1).
-- **§6.4** promises a `no-unsanitized/property` ESLint rule on the log
-  renderer — not configured in `eslint.config.js`. The renderer does use
-  `textContent`, so the invariant holds; the promised guardrail is missing.
-- **§12.4** systemd unit runs `node dist/index.js` — no build step produces
-  server `dist/`. DEPLOY.md correctly uses `tsx` and explains why. Fix §12.4.
+> Fixed: §5.3 now blesses deliberate in-place world mutation (purity = no I/O,
+> seeded RNG only); §5.1's "one queued command per entity per tick" became true
+> with #1; §6.4's promised `no-unsanitized/property` rule is now configured
+> (verified firing on an `innerHTML` probe, silent on the real code); §12.4's
+> systemd unit now uses `tsx` like DEPLOY.md and points at DEPLOY.md §3 as the
+> tested source of truth.
 
 ### 8. `Command`/`Event` live in the wrong module
 

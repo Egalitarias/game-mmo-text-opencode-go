@@ -196,8 +196,10 @@ in a test (`makeWorld({ ... })`).
 
 ### 5.3 Rules are pure functions
 
-Every rule has the same signature — world in, events out, no I/O, no mutation of
-input, randomness only via an injected seeded RNG:
+Every rule has the same signature — world in, events out, no I/O, randomness
+only via an injected seeded RNG. Rules mutate the given world in place (simple,
+and cheap at this scale); what makes them pure is that they touch nothing
+outside that world — no sockets, no clock, no global state:
 
 ```ts
 type Rule = (world: World, rng: Rng, cmd: Command) => Event[];
@@ -298,7 +300,7 @@ can never slow down the tick loop.
   - hard max length (240 chars), enforced by the zod schema;
   - clients render chat via `textContent`, never `innerHTML` — no HTML/JS
     injection is possible by construction. Enforced by an ESLint rule
-    (`no-unsanitized/property` on the log renderer).
+    (`no-unsanitized/property` across `packages/client`).
 - **History**: the gateway keeps the last ~50 messages per channel in memory and
   includes them in `welcome`-adjacent catch-up so joiners see recent context.
   No persistence.
@@ -410,7 +412,7 @@ Guidelines:
 - Coverage target: ~100% on `shared/rules`, otherwise pragmatism.
 - `pnpm test` runs unit + integration (no browsers needed); `pnpm test:e2e` runs
   the Playwright smoke tests (one-time setup: `pnpm -C packages/e2e exec playwright
-  install chromium`). CI runs lint → typecheck → tests.
+install chromium`). CI runs lint → typecheck → tests.
 
 ---
 
@@ -528,7 +530,8 @@ After=network.target
 Type=simple
 User=game                          # non-root
 WorkingDirectory=/srv/game/server
-ExecStart=/usr/bin/node dist/index.js
+# tsx, not a dist/ build: the server imports @game/shared as TS source
+ExecStart=/srv/game/server/node_modules/.bin/tsx src/index.ts
 Restart=always
 RestartSec=2
 Environment=NODE_ENV=production PORT=3000 HOST=127.0.0.1
@@ -537,7 +540,8 @@ Environment=NODE_ENV=production PORT=3000 HOST=127.0.0.1
 WantedBy=multi-user.target
 ```
 
-systemd gives boot-start, crash-restart, and journald logs for free. A Docker
+The exact, tested unit lives in DEPLOY.md §3. systemd gives boot-start,
+crash-restart, and journald logs for free. A Docker
 image with `--restart=always` behind the same proxy is an equally valid
 alternative — pick based on the deploy pipeline, not the topology. Kubernetes
 is premature for a single-zone stateful sim.
