@@ -159,7 +159,7 @@ window.addEventListener("keydown", (e) => {
     openChat();
     return;
   }
-  const cmd = keyToMove(e.key);
+  const cmd = keyToMove(e.code);
   if (cmd) {
     e.preventDefault();
     socket.send({ t: "cmd", seq: state.seq++, cmd });

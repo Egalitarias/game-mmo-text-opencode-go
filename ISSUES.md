@@ -156,9 +156,9 @@ classic `ws` `isAlive` recipe).
   phase-1-only. **FIXED:** snapshot is now skipped when the tick produced zero
   events (regression test added).
 - **Keyboard nits** (`packages/client/src/input/keys.ts`,
-  `packages/client/src/main.ts`): `e.key` is case/layout-sensitive (`"W"` with
-  Shift/CapsLock doesn't move); consider `e.code`. The `yubn` diagonals will
-  collide with future command letters — decide deliberately.
+  `packages/client/src/main.ts`): **FIXED:** switched from `e.key` to `e.code`
+  for layout independence — Shift/CapsLock no longer break movement. The `yubn`
+  diagonals will still collide with future command letters — decide deliberately.
 - **No SIGTERM handler** (`packages/server/src/index.ts:31`) — **FIXED:**
   extracted `gateway/shutdown.ts` with idempotent handler registered for both
   SIGINT and SIGTERM; covered by 5 unit tests.

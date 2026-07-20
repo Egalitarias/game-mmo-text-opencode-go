@@ -1,27 +1,27 @@
 import type { Command } from "@game/shared";
 
-/** Pure key → move mapping: arrows, wasd, diagonals (yubn). */
-export function keyToMove(key: string): Command | null {
-  switch (key) {
+/** Pure key code → move mapping: arrows, wasd, diagonals (yubn). Uses e.code for layout independence. */
+export function keyToMove(code: string): Command | null {
+  switch (code) {
     case "ArrowUp":
-    case "w":
+    case "KeyW":
       return { kind: "move", dx: 0, dy: -1 };
     case "ArrowDown":
-    case "s":
+    case "KeyS":
       return { kind: "move", dx: 0, dy: 1 };
     case "ArrowLeft":
-    case "a":
+    case "KeyA":
       return { kind: "move", dx: -1, dy: 0 };
     case "ArrowRight":
-    case "d":
+    case "KeyD":
       return { kind: "move", dx: 1, dy: 0 };
-    case "y":
+    case "KeyY":
       return { kind: "move", dx: -1, dy: -1 };
-    case "u":
+    case "KeyU":
       return { kind: "move", dx: 1, dy: -1 };
-    case "b":
+    case "KeyB":
       return { kind: "move", dx: -1, dy: 1 };
-    case "n":
+    case "KeyN":
       return { kind: "move", dx: 1, dy: 1 };
     default:
       return null;

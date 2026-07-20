@@ -2,27 +2,33 @@ import { describe, expect, it } from "vitest";
 import { keyToMove } from "../src/input/keys.js";
 
 describe("keyToMove", () => {
-  it("maps arrows to cardinal moves", () => {
+  it("maps arrow codes to cardinal moves", () => {
     expect(keyToMove("ArrowUp")).toEqual({ kind: "move", dx: 0, dy: -1 });
     expect(keyToMove("ArrowDown")).toEqual({ kind: "move", dx: 0, dy: 1 });
     expect(keyToMove("ArrowLeft")).toEqual({ kind: "move", dx: -1, dy: 0 });
     expect(keyToMove("ArrowRight")).toEqual({ kind: "move", dx: 1, dy: 0 });
   });
 
-  it("maps wasd including diagonals", () => {
-    expect(keyToMove("a")).toEqual({ kind: "move", dx: -1, dy: 0 });
-    expect(keyToMove("s")).toEqual({ kind: "move", dx: 0, dy: 1 });
-    expect(keyToMove("w")).toEqual({ kind: "move", dx: 0, dy: -1 });
-    expect(keyToMove("d")).toEqual({ kind: "move", dx: 1, dy: 0 });
-    expect(keyToMove("y")).toEqual({ kind: "move", dx: -1, dy: -1 });
-    expect(keyToMove("u")).toEqual({ kind: "move", dx: 1, dy: -1 });
-    expect(keyToMove("b")).toEqual({ kind: "move", dx: -1, dy: 1 });
-    expect(keyToMove("n")).toEqual({ kind: "move", dx: 1, dy: 1 });
+  it("maps wasd codes including diagonals", () => {
+    expect(keyToMove("KeyA")).toEqual({ kind: "move", dx: -1, dy: 0 });
+    expect(keyToMove("KeyS")).toEqual({ kind: "move", dx: 0, dy: 1 });
+    expect(keyToMove("KeyW")).toEqual({ kind: "move", dx: 0, dy: -1 });
+    expect(keyToMove("KeyD")).toEqual({ kind: "move", dx: 1, dy: 0 });
+    expect(keyToMove("KeyY")).toEqual({ kind: "move", dx: -1, dy: -1 });
+    expect(keyToMove("KeyU")).toEqual({ kind: "move", dx: 1, dy: -1 });
+    expect(keyToMove("KeyB")).toEqual({ kind: "move", dx: -1, dy: 1 });
+    expect(keyToMove("KeyN")).toEqual({ kind: "move", dx: 1, dy: 1 });
   });
 
-  it("ignores unrelated keys", () => {
-    expect(keyToMove("x")).toBeNull();
+  it("works regardless of shift or caps lock (e.code is layout-independent)", () => {
+    // e.code for W is always "KeyW" regardless of Shift/CapsLock producing "W" vs "w" in e.key
+    expect(keyToMove("KeyW")).toEqual({ kind: "move", dx: 0, dy: -1 });
+    expect(keyToMove("KeyA")).toEqual({ kind: "move", dx: -1, dy: 0 });
+  });
+
+  it("ignores unrelated codes", () => {
+    expect(keyToMove("KeyX")).toBeNull();
     expect(keyToMove("Enter")).toBeNull();
-    expect(keyToMove(" ")).toBeNull();
+    expect(keyToMove("Space")).toBeNull();
   });
 });
