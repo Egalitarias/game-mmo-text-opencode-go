@@ -5,14 +5,14 @@ import { buildRows, DomGridRenderer } from "../src/render/grid.js";
 
 const zone = generateZone("cave", 10, 5, 1);
 
-// generateZone adds pillars at (width>>1, height>>1) = (5,2) and (5,3).
+// generateZone puts pillars at (width/4, height/2) and mirrored: (2,2) and (7,2) here.
 
 describe("buildRows", () => {
   it("renders walls and floors", () => {
     const rows = buildRows({ zone, entities: [], youId: undefined });
     expect(rows[0]).toBe("##########");
     expect(rows[1]).toBe("#........#");
-    expect(rows[2]).toBe("#....#...#");
+    expect(rows[2]).toBe("#.#....#.#");
     expect(rows).toHaveLength(5);
   });
 
@@ -22,7 +22,7 @@ describe("buildRows", () => {
       entities: [{ id: 1, glyph: "@", pos: { x: 3, y: 2, zone: "cave" }, handle: "A" }],
       youId: 1,
     });
-    expect(rows[2]).toBe("#..@.#...#");
+    expect(rows[2]).toBe("#.#@...#.#");
   });
 
   it("skips entities in other zones", () => {
@@ -31,7 +31,7 @@ describe("buildRows", () => {
       entities: [{ id: 2, glyph: "@", pos: { x: 3, y: 2, zone: "elsewhere" } }],
       youId: undefined,
     });
-    expect(rows[2]).toBe("#....#...#");
+    expect(rows[2]).toBe("#.#....#.#");
   });
 });
 

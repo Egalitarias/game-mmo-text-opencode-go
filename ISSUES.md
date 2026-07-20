@@ -66,19 +66,14 @@ which also feeds #2.
 **Fix:** server-side `setInterval` ping + `terminate()` on stale pongs (the
 classic `ws` `isAlive` recipe).
 
-### 4. Pillar expression in mapgen is a precedence trap
+### 4. Pillar expression in mapgen is a precedence trap — **FIXED**
 
 `packages/shared/src/mapgen/static.ts:13`
 
-```ts
-const pillar = (x === width >> 1 && y === height >> 1) || (x === 5 && y === 3);
-```
-
-It happens to parse correctly as `x === (width >> 1)` (shift binds tighter
-than equality), but is easily misread. Worse, the second pillar is hardcoded
-`(5,3)` and silently vanishes on maps smaller than 6×4.
-
-**Fix:** parenthesize; derive both pillars from `width`/`height`.
+> Fixed: two pillars on the middle row, symmetric about the vertical midline,
+> computed with `Math.floor(width / 4)` — no shift/equality mixing, and no
+> hardcoded coordinate that vanishes on small maps. Grid test expectations
+> updated; map renders verified.
 
 ---
 
