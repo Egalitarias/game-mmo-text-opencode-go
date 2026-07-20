@@ -1,6 +1,6 @@
 import type { EntityId, World } from "../model/world.js";
 import type { Rng } from "../rng/rng.js";
-import type { Command, Event } from "./movement.js";
+import type { Command, Event } from "./types.js";
 import { tryMove } from "./movement.js";
 
 export interface QueuedCommand {

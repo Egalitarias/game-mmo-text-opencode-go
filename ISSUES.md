@@ -106,13 +106,14 @@ classic `ws` `isAlive` recipe).
 > systemd unit now uses `tsx` like DEPLOY.md and points at DEPLOY.md §3 as the
 > tested source of truth.
 
-### 8. `Command`/`Event` live in the wrong module
+### 8. `Command`/`Event` live in the wrong module — **FIXED**
 
 `packages/shared/src/rules/movement.ts:5-11`
 
-The canonical `Event` union includes `joined`/`left` (lifecycle, not movement),
-and `Command` will attract every future verb. Move both unions to
-`rules/types.ts` (or `protocol/`) before combat lands in phase 2.
+> Fixed: both unions moved to `packages/shared/src/rules/types.ts`;
+> `movement.ts`, `step.ts`, and `protocol/messages.ts` import from there. The
+> `@game/shared` barrel re-exports it, so the public API is unchanged (server
+> and client typecheck untouched).
 
 ### 9. Zod schema ↔ TS type drift risk
 

@@ -1,5 +1,6 @@
 export * from "./model/world.js";
 export * from "./rng/rng.js";
+export * from "./rules/types.js";
 export * from "./rules/movement.js";
 export * from "./rules/step.js";
 export * from "./mapgen/static.js";

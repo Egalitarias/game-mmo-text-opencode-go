@@ -1,6 +1,6 @@
 import { z } from "zod";
 import type { EntityId, Position } from "../model/world.js";
-import type { Command, Event } from "../rules/movement.js";
+import type { Command, Event } from "../rules/types.js";
 
 export const PROTOCOL_VERSION = 1;
 

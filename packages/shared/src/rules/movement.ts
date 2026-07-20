@@ -1,14 +1,7 @@
 import type { EntityId, Position, World } from "../model/world.js";
 import { entityAt, isWalkable } from "../model/world.js";
 import type { Rng } from "../rng/rng.js";
-
-export type Event =
-  | { kind: "moved"; entityId: EntityId; to: Position }
-  | { kind: "bumped"; entityId: EntityId }
-  | { kind: "joined"; entityId: EntityId; handle: string }
-  | { kind: "left"; entityId: EntityId; handle: string };
-
-export type Command = { kind: "move"; dx: -1 | 0 | 1; dy: -1 | 0 | 1 };
+import type { Event } from "./types.js";
 
 /**
  * Move an entity by (dx, dy). Walking into a wall or another entity is a bump
