@@ -9,6 +9,18 @@ export interface FrameView {
 
 const TILE_GLYPH: Record<string, string> = { floor: ".", wall: "#" };
 
+/** Build a screen-reader-friendly summary of the game state. */
+export function buildAriaSummary(view: FrameView): string {
+  const you = view.entities.find((e) => e.id === view.youId);
+  if (!you) return "Waiting to join game";
+
+  const pos = you.pos;
+  const others = view.entities.filter((e) => e.id !== view.youId).length;
+  const handle = you.handle ?? "you";
+
+  return `${handle} at position ${pos.x}, ${pos.y} in ${pos.zone}. ${others} other player${others === 1 ? "" : "s"} nearby.`;
+}
+
 /** Pure: build the glyph rows for a frame. Trivially testable, no DOM. */
 export function buildRows(view: FrameView): string[] {
   const rows: string[][] = [];
@@ -29,9 +41,13 @@ export function buildRows(view: FrameView): string[] {
 
 /** Thin DOM shell around buildRows. */
 export class DomGridRenderer {
-  constructor(private readonly el: HTMLElement) {}
+  constructor(private readonly el: HTMLElement) {
+    this.el.setAttribute("role", "img");
+    this.el.setAttribute("aria-live", "polite");
+  }
 
   render(view: FrameView): void {
     this.el.textContent = buildRows(view).join("\n");
+    this.el.setAttribute("aria-label", buildAriaSummary(view));
   }
 }

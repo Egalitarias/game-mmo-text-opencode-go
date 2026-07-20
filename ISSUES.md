@@ -170,8 +170,9 @@ classic `ws` `isAlive` recipe).
 - **`allowBuilds` in `pnpm-workspace.yaml`** — **VERIFIED:** `allowBuilds` is the
   pnpm v11 mechanism for approving postinstall scripts; `onlyBuiltDependencies`
   was redundant and has been removed. Only `allowBuilds: esbuild: true` remains.
-- **`<pre id="grid">` glyph blob** isn't really screen-reader-friendly despite
-  ARCHITECTURE.md's claim — needs an aria summary later.
+- **`<pre id="grid">` glyph blob** — **FIXED:** added `role="img"`, `aria-live="polite"`,
+  and dynamic `aria-label` summarizing player position, zone, and nearby player count.
+  Covered by 7 tests for `buildAriaSummary` and DOM attribute behavior.
 - **Test gaps** (suite is otherwise strong): **FIXED:** added tests for
   `ChatHistory` capacity trim, double-`hello` guard (silently ignored), and
   world-full spawn (reject with "world is full").
