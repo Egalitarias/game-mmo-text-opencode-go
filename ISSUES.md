@@ -136,13 +136,14 @@ classic `ws` `isAlive` recipe).
 > `sendHello()`) instead of opening a duplicate — verified live against the
 > server.
 
-### 11. Dev proxy/host mismatch
+### 11. Dev proxy/host mismatch — **FIXED**
 
 `packages/client/vite.config.ts:6`
 
-Proxy targets `ws://localhost:3000` while the server binds `127.0.0.1` by
-default. Where `localhost` resolves to `::1` first (common on macOS), the dev
-proxy fails intermittently. Align the two (`ws://127.0.0.1:3000`).
+> Fixed: proxy target is now `ws://127.0.0.1:3000`, matching the server's
+> default bind. Verified empirically that `vite preview` inherits
+> `server.proxy` (ws client welcomed through the preview port), so no separate
+> preview config is needed.
 
 ---
 
