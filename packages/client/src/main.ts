@@ -27,6 +27,8 @@ const chatField = el<HTMLInputElement>("chat-field");
 // ── state (display data only — no game rules) ────────────────────────────────
 
 interface ClientState {
+  /** Handle chosen on the join form; re-sent as `hello` on every (re)connect. */
+  handle: string;
   youId: EntityId | undefined;
   zone: Zone | undefined;
   entities: EntityView[];
@@ -37,6 +39,7 @@ interface ClientState {
 }
 
 const state: ClientState = {
+  handle: "",
   youId: undefined,
   zone: undefined,
   entities: [],
@@ -52,11 +55,18 @@ const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.hos
 
 const socket = new GameSocket(wsUrl, {
   onOpen() {
-    const handle = handleInput.value.trim();
-    if (handle) socket.send({ t: "hello", handle, protocolVersion: PROTOCOL_VERSION });
+    if (state.handle) {
+      socket.send({ t: "hello", handle: state.handle, protocolVersion: PROTOCOL_VERSION });
+    }
   },
   onClose() {
-    if (state.youId !== undefined) log.append("connection lost — reconnecting…", "error");
+    const wasInSession = state.youId !== undefined;
+    // Drop session state so a rejected re-hello routes back to the join form
+    // instead of the log (welcome/snapshot repopulate everything on success).
+    state.youId = undefined;
+    state.entities = [];
+    state.roster = [];
+    if (wasInSession) log.append("connection lost — reconnecting…", "error");
   },
   onMessage(msg) {
     switch (msg.t) {
@@ -65,7 +75,7 @@ const socket = new GameSocket(wsUrl, {
         state.zone = generateZone(msg.zoneId, msg.zoneWidth, msg.zoneHeight, msg.zoneSeed);
         state.roster = msg.roster;
         overlay.classList.add("hidden");
-        log.append(`welcome, ${handleInput.value.trim()} — you are @`, "game");
+        log.append(`welcome, ${state.handle} — you are @`, "game");
         render();
         break;
       }
@@ -92,8 +102,13 @@ const socket = new GameSocket(wsUrl, {
         );
         break;
       case "reject":
-        if (state.youId === undefined) overlayError.textContent = msg.reason;
-        else log.append(msg.reason, "error");
+        if (state.youId === undefined) {
+          // Pre-session reject (taken/invalid handle, protocol mismatch): re-prompt.
+          overlay.classList.remove("hidden");
+          overlayError.textContent = msg.reason;
+        } else {
+          log.append(msg.reason, "error");
+        }
         break;
       case "pong":
       case "delta":
@@ -149,6 +164,7 @@ window.addEventListener("keydown", (e) => {
 
 joinForm.addEventListener("submit", (e) => {
   e.preventDefault();
+  state.handle = handleInput.value.trim();
   overlayError.textContent = "";
   socket.connect();
 });

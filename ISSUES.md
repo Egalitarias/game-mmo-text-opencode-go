@@ -24,10 +24,16 @@ unbounded-memory DoS vector (the queue grows without limit between ticks).
 per tick) instead of an array. Optionally rate-limit `cmd` messages like chat.
 Add a test asserting one command per entity per tick.
 
-### 2. Reconnect soft-lock
+### 2. Reconnect soft-lock — **FIXED**
 
 `packages/client/src/main.ts` (`onClose`, `reject` handling),
 `packages/client/src/net/socket.ts`
+
+> Fixed: `onClose` now resets session state (`youId`/`entities`/`roster`), so a
+> rejected re-`hello` routes back to the join form (overlay is un-hidden)
+> instead of being lost in the log. The handle lives in client state rather
+> than being re-read from the DOM input. The lingering double-socket guard is
+> tracked in #10; the server-side complement (heartbeat) is #3.
 
 On auto-reconnect, `state.youId` is stale (never reset on close). If the server
 rejects the re-`hello` — likely, since the old connection's close may not be
