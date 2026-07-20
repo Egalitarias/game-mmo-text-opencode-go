@@ -28,6 +28,13 @@ export interface PlayerSession {
   connectedAt: number;
 }
 
+export interface Stats {
+  hp: number;
+  maxHp: number;
+  attack: number;
+  defense: number;
+}
+
 export interface Ai {
   kind: "aggressive" | "wander" | "flee";
 }
@@ -43,6 +50,7 @@ export interface World {
   entities: Map<EntityId, Entity>;
   positions: Map<EntityId, Position>;
   players: Map<EntityId, PlayerSession>;
+  stats: Map<EntityId, Stats>;
   ais: Map<EntityId, Ai>;
   energies: Map<EntityId, Energy>;
   nextEntityId: EntityId;
@@ -57,6 +65,7 @@ export function makeWorld(): World {
     entities: new Map(),
     positions: new Map(),
     players: new Map(),
+    stats: new Map(),
     ais: new Map(),
     energies: new Map(),
     nextEntityId: 1,
@@ -94,6 +103,7 @@ export function spawnPlayer(
         world.entities.set(id, { id, glyph: "@" });
         world.positions.set(id, { x, y, zone: zoneId });
         world.players.set(id, { handle, connectedAt: now });
+        world.stats.set(id, { hp: 20, maxHp: 20, attack: 5, defense: 2 });
         world.occupancy.set(occupancyKey(zoneId, x, y), id);
         return id;
       }
@@ -111,6 +121,7 @@ export function spawnMonster(
   glyph: string,
   aiKind: Ai["kind"],
   speed: number = 100,
+  stats?: Partial<Stats>,
 ): EntityId | undefined {
   const zone = world.zones.get(zoneId);
   if (!zone) return undefined;
@@ -122,6 +133,12 @@ export function spawnMonster(
   world.positions.set(id, { x, y, zone: zoneId });
   world.ais.set(id, { kind: aiKind });
   world.energies.set(id, { current: 0, speed });
+  world.stats.set(id, {
+    hp: stats?.hp ?? 10,
+    maxHp: stats?.maxHp ?? 10,
+    attack: stats?.attack ?? 3,
+    defense: stats?.defense ?? 1,
+  });
   world.occupancy.set(occupancyKey(zoneId, x, y), id);
   return id;
 }
@@ -134,6 +151,7 @@ export function removeEntity(world: World, id: EntityId): void {
   world.entities.delete(id);
   world.positions.delete(id);
   world.players.delete(id);
+  world.stats.delete(id);
   world.ais.delete(id);
   world.energies.delete(id);
 }

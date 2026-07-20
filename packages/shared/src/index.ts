@@ -5,5 +5,6 @@ export * from "./rules/movement.js";
 export * from "./rules/step.js";
 export * from "./rules/fov.js";
 export * from "./rules/ai.js";
+export * from "./rules/combat.js";
 export * from "./mapgen/static.js";
 export * from "./protocol/messages.js";

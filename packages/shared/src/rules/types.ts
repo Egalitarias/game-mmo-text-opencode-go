@@ -8,4 +8,6 @@ export type Event =
   | { kind: "moved"; entityId: EntityId; to: Position }
   | { kind: "bumped"; entityId: EntityId }
   | { kind: "joined"; entityId: EntityId; handle: string }
-  | { kind: "left"; entityId: EntityId; handle: string };
+  | { kind: "left"; entityId: EntityId; handle: string }
+  | { kind: "attacked"; attackerId: EntityId; targetId: EntityId; damage: number }
+  | { kind: "died"; entityId: EntityId };

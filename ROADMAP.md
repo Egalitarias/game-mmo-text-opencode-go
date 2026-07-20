@@ -46,9 +46,9 @@ All ISSUES.md items resolved.
 - ✓ AI decision-making integrated with game loop
 
 ### Melee Combat
-- Attack resolution on bump into entities (`resolveAttack`)
-- Stats component: `hp`, `maxHp`, `attack`, `defense`
-- Damage calculation and death handling
+- ✓ Attack resolution on bump into entities (`resolveAttack`)
+- ✓ Stats component: `hp`, `maxHp`, `attack`, `defense`
+- ✓ Damage calculation and death handling
 - Combat events in message log ("You hit the goblin!")
 
 ### Death and Respawn

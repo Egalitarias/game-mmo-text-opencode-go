@@ -41,7 +41,7 @@ describe("tryMove", () => {
     expect(world.positions.get(id)).toEqual(before);
   });
 
-  it("bumps when another entity occupies the target tile", () => {
+  it("attacks when another entity occupies the target tile", () => {
     const { world, rng, id } = setup();
     const pos = world.positions.get(id)!;
     const other = spawnPlayer(world, "cave", "Other", 0)!;
@@ -50,7 +50,8 @@ describe("tryMove", () => {
     world.positions.set(other, { x: pos.x + 1, y: pos.y, zone: "cave" });
     world.occupancy.set(`${pos.zone},${pos.x + 1},${pos.y}`, other);
 
-    expect(tryMove(world, rng, id, 1, 0)).toEqual([{ kind: "bumped", entityId: id }]);
+    const events = tryMove(world, rng, id, 1, 0);
+    expect(events.some(e => e.kind === "attacked")).toBe(true);
   });
 });
 
