@@ -194,6 +194,31 @@ describe("chat", () => {
     expect(alice.last("reject").reason).toBe("chat rate limited");
   });
 
+  it("does not consume a rate-limit token when zone chat is aborted (no position)", () => {
+    const server = makeServer(() => 1000); // frozen clock: no refill
+    const alice = join(server, "Alice");
+    const entityId = alice.last("welcome").entityId;
+
+    // Remove Alice's position so zone chat aborts early.
+    server.world.positions.delete(entityId);
+
+    // Send zone chat 4 times — none should consume a token.
+    for (let i = 0; i < 4; i++) {
+      server.handleMessage(alice, JSON.stringify({ t: "chat", channel: "zone", text: `z${i}` }));
+    }
+
+    // All 4 tokens should still be available: global chat should succeed 4 times.
+    const bob = join(server, "Bob");
+    for (let i = 0; i < 4; i++) {
+      server.handleMessage(alice, JSON.stringify({ t: "chat", channel: "global", text: `g${i}` }));
+    }
+    expect(bob.ofType("chat")).toHaveLength(4);
+
+    // 5th global should be rate limited.
+    server.handleMessage(alice, JSON.stringify({ t: "chat", channel: "global", text: "spam" }));
+    expect(alice.last("reject").reason).toBe("chat rate limited");
+  });
+
   it("rejects malformed messages", () => {
     const server = makeServer();
     const conn = join(server, "Alice");

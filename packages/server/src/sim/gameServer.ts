@@ -172,21 +172,21 @@ export class GameServer {
       conn.send({ t: "reject", seq: -1, reason: "not logged in" });
       return;
     }
+    const handle = this.world.players.get(state.entityId)?.handle ?? "?";
+    const pos = channel === "zone" ? this.world.positions.get(state.entityId) : undefined;
+    if (channel === "zone" && !pos) return;
     if (!state.chatBucket.tryTake()) {
       conn.send({ t: "reject", seq: -1, reason: "chat rate limited" });
       return;
     }
-    const handle = this.world.players.get(state.entityId)?.handle ?? "?";
     const msg: ServerMessage = { t: "chat", from: handle, channel, text, tick: this.world.tick };
 
     if (channel === "global") {
       this.chatHistory.push(globalChatKey(), msg);
       this.broadcastAll(msg);
     } else {
-      const pos = this.world.positions.get(state.entityId);
-      if (!pos) return;
-      this.chatHistory.push(zoneChatKey(pos.zone), msg);
-      this.broadcastZone(pos.zone, msg);
+      this.chatHistory.push(zoneChatKey(pos!.zone), msg);
+      this.broadcastZone(pos!.zone, msg);
     }
   }
 

@@ -159,10 +159,13 @@ classic `ws` `isAlive` recipe).
   `packages/client/src/main.ts`): `e.key` is case/layout-sensitive (`"W"` with
   Shift/CapsLock doesn't move); consider `e.code`. The `yubn` diagonals will
   collide with future command letters — decide deliberately.
-- **No SIGTERM handler** (`packages/server/src/index.ts:31`) — systemd restart
-  sends SIGTERM; only SIGINT is handled. Harmless while the world is in-memory.
+- **No SIGTERM handler** (`packages/server/src/index.ts:31`) — **FIXED:**
+  extracted `gateway/shutdown.ts` with idempotent handler registered for both
+  SIGINT and SIGTERM; covered by 5 unit tests.
 - **`onChat` consumes a rate-limit token before the `pos` lookup**
-  (`gameServer.ts:173-185`) that can abort a zone send — negligible; reorder.
+  (`gameServer.ts:173-185`) that can abort a zone send — **FIXED:** `pos` lookup
+  now happens before `tryTake()` for zone chat; early return on missing position
+  no longer wastes a token.
 - **`allowBuilds` in `pnpm-workspace.yaml`** looks redundant next to
   `onlyBuiltDependencies` (the documented key). Harmless; verify.
 - **`<pre id="grid">` glyph blob** isn't really screen-reader-friendly despite
