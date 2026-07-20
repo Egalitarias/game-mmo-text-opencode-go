@@ -153,8 +153,8 @@ classic `ws` `isAlive` recipe).
   called per move and per spawn tile, so spawning is O(n·w·h). Fine for the
   skeleton; an occupancy index (`Map<"zone,x,y", EntityId>`) is the phase-2 fix.
 - **Full snapshot broadcast every tick** — O(players²) bytes, documented as
-  phase-1-only. Cheap win now: skip the broadcast when the tick produced zero
-  events.
+  phase-1-only. **FIXED:** snapshot is now skipped when the tick produced zero
+  events (regression test added).
 - **Keyboard nits** (`packages/client/src/input/keys.ts`,
   `packages/client/src/main.ts`): `e.key` is case/layout-sensitive (`"W"` with
   Shift/CapsLock doesn't move); consider `e.code`. The `yubn` diagonals will
