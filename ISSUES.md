@@ -87,17 +87,15 @@ classic `ws` `isAlive` recipe).
 > Fixed: `test-results/` and `playwright-report/` added to `.gitignore`;
 > previously tracked files removed from the index (kept on disk).
 
-### 6. WebSocket edge hardening
+### 6. WebSocket edge hardening — **FIXED**
 
 `packages/server/src/index.ts`
 
-- No `maxPayload` — `ws` defaults to 100 MiB; a client can make the server
-  `JSON.parse` enormous frames. `maxPayload: 16 * 1024` suffices (chat caps at
-  240 chars anyway).
-- No try/catch around `game.handleMessage` — today the parser makes throws
-  impossible, but any future bug in message handling = process crash.
-- No rate limit on `hello` (handle-flood), no cap on connections — acceptable
-  for v1, worth noting.
+> Fixed: `maxPayload: 16 KiB` (oversized frames close the connection with 1009
+> instead of making the server parse megabytes of JSON — verified live) and a
+> try/catch around `game.handleMessage` so a bad message can never take down
+> the process. Not addressed (noted as acceptable for v1): `hello` flood
+> limiting and a connection cap.
 
 ### 7. ARCHITECTURE.md drift from the code
 
