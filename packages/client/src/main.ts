@@ -24,6 +24,133 @@ const chatbar = el("chatbar");
 const chatPrompt = el("chat-prompt");
 const chatField = el<HTMLInputElement>("chat-field");
 
+// ── interpolation ────────────────────────────────────────────────────────────
+
+interface InterpolatedEntity {
+  id: EntityId;
+  glyph: string;
+  handle?: string;
+  prevX: number;
+  prevY: number;
+  currX: number;
+  currY: number;
+  zone: string;
+  updateTime: number;
+}
+
+const TICK_INTERVAL_MS = 100; // Server tick rate
+const INTERPOLATION_DELAY_MS = 150; // Render 1.5 ticks behind
+
+const interpolatedEntities = new Map<EntityId, InterpolatedEntity>();
+let animationFrameId: number | null = null;
+
+function updateInterpolation(entities: EntityView[]): void {
+  const now = performance.now();
+  
+  // Update or add entities
+  for (const entity of entities) {
+    const existing = interpolatedEntities.get(entity.id);
+    if (existing) {
+      // Move current to previous, update current
+      existing.prevX = existing.currX;
+      existing.prevY = existing.currY;
+      existing.currX = entity.pos.x;
+      existing.currY = entity.pos.y;
+      existing.updateTime = now;
+      if (entity.handle !== undefined) {
+        existing.handle = entity.handle;
+      }
+    } else {
+      // New entity - start at current position
+      const interpolated: InterpolatedEntity = {
+        id: entity.id,
+        glyph: entity.glyph,
+        prevX: entity.pos.x,
+        prevY: entity.pos.y,
+        currX: entity.pos.x,
+        currY: entity.pos.y,
+        zone: entity.pos.zone,
+        updateTime: now,
+      };
+      if (entity.handle !== undefined) {
+        interpolated.handle = entity.handle;
+      }
+      interpolatedEntities.set(entity.id, interpolated);
+    }
+  }
+  
+  // Remove entities that are no longer present
+  const entityIds = new Set(entities.map(e => e.id));
+  for (const id of interpolatedEntities.keys()) {
+    if (!entityIds.has(id)) {
+      interpolatedEntities.delete(id);
+    }
+  }
+}
+
+function getInterpolatedEntities(): EntityView[] {
+  const now = performance.now();
+  const renderTime = now - INTERPOLATION_DELAY_MS;
+  
+  const result: EntityView[] = [];
+  
+  for (const entity of interpolatedEntities.values()) {
+    const timeSinceUpdate = renderTime - entity.updateTime;
+    
+    // If we're rendering before the update, use previous position
+    // If we're rendering after, interpolate towards current
+    let t = Math.max(0, Math.min(1, timeSinceUpdate / TICK_INTERVAL_MS));
+    
+    // If entity hasn't moved recently, snap to current position
+    if (entity.prevX === entity.currX && entity.prevY === entity.currY) {
+      t = 1;
+    }
+    
+    const x = entity.prevX + (entity.currX - entity.prevX) * t;
+    const y = entity.prevY + (entity.currY - entity.prevY) * t;
+    
+    const view: EntityView = {
+      id: entity.id,
+      glyph: entity.glyph,
+      pos: {
+        x,
+        y,
+        zone: entity.zone,
+      },
+    };
+    
+    if (entity.handle !== undefined) {
+      view.handle = entity.handle;
+    }
+    
+    result.push(view);
+  }
+  
+  return result;
+}
+
+function renderLoop(): void {
+  if (state.zone && state.youId !== undefined) {
+    const interpolated = getInterpolatedEntities();
+    grid.render({ zone: state.zone, entities: interpolated, youId: state.youId });
+  }
+  
+  animationFrameId = requestAnimationFrame(renderLoop);
+}
+
+function startRenderLoop(): void {
+  if (animationFrameId === null) {
+    animationFrameId = requestAnimationFrame(renderLoop);
+  }
+}
+
+function stopRenderLoop(): void {
+  if (animationFrameId !== null) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+}
+
 // ── state (display data only — no game rules) ────────────────────────────────
 
 interface ClientState {
@@ -70,6 +197,8 @@ const socket = new GameSocket(wsUrl, {
     state.youId = undefined;
     state.entities = [];
     state.roster = [];
+    interpolatedEntities.clear();
+    stopRenderLoop();
     if (wasInSession) log.append("connection lost — reconnecting…", "error");
   },
   onMessage(msg) {
@@ -80,12 +209,13 @@ const socket = new GameSocket(wsUrl, {
         state.roster = msg.roster;
         overlay.classList.add("hidden");
         log.append(`welcome, ${state.handle} — you are @`, "game");
-        render();
+        startRenderLoop();
         break;
       }
       case "snapshot":
         state.entities = msg.entities;
-        render();
+        updateInterpolation(msg.entities);
+        renderStatus();
         break;
       case "delta": {
         // Apply delta: update changed entities and remove deleted ones
@@ -102,7 +232,8 @@ const socket = new GameSocket(wsUrl, {
         }
         
         state.entities = Array.from(entityMap.values());
-        render();
+        updateInterpolation(state.entities);
+        renderStatus();
         break;
       }
       case "events":
@@ -115,7 +246,7 @@ const socket = new GameSocket(wsUrl, {
             log.append(`${ev.handle} left the game`, "game");
           }
         }
-        render();
+        renderStatus();
         break;
       case "chat":
         log.append(
@@ -195,10 +326,7 @@ joinForm.addEventListener("submit", (e) => {
 
 // ── render ───────────────────────────────────────────────────────────────────
 
-function render(): void {
-  if (state.zone) {
-    grid.render({ zone: state.zone, entities: state.entities, youId: state.youId });
-  }
+function renderStatus(): void {
   const you = state.entities.find((e) => e.id === state.youId);
   statusEl.textContent = [
     `you: ${you?.handle ?? "…"} (@)`,

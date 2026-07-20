@@ -154,9 +154,11 @@ All ISSUES.md items resolved.
 - ✓ 15 comprehensive tests for delta system
 
 ### Interpolation Smoothing
-- Render 1-2 ticks behind for smooth motion
-- `requestAnimationFrame` render loop decoupled from network ticks
-- 10 ticks/sec looks smooth with interpolation buffer
+- ✓ Render 1-2 ticks behind for smooth motion
+- ✓ `requestAnimationFrame` render loop decoupled from network ticks
+- ✓ 10 ticks/sec looks smooth with interpolation buffer
+- ✓ Linear interpolation between entity positions
+- ✓ Automatic entity tracking and cleanup
 
 ### Binary Protocol
 - Replace JSON with MessagePack
