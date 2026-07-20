@@ -107,6 +107,12 @@ All ISSUES.md items resolved.
 - Chat history persistence
 
 ### Zone Sharding
+- ✓ ZoneWorker class for managing individual zone workers
+- ✓ ZoneShardManager for coordinating multiple zones
+- ✓ Zone worker script for running zone simulation
+- ✓ Entity zone mapping and command routing
+- ✓ Zone transition coordination between workers
+- ✓ Event handling and broadcasting
 - Each zone runs in its own worker/process
 - Gateway routes by player zone
 - Zone hand-off via WorldStore
