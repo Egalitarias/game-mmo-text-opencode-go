@@ -28,7 +28,7 @@ All ISSUES.md items resolved.
 
 ### Procedural Map Generation
 - ✓ Replace static room with BSP or cellular automata caves
-- Hand-authored vaults spliced into generated maps
+- ✓ Hand-authored vaults spliced into generated maps
 - ✓ Seeded per zone for reproducibility
 - ✓ Snapshot tests per seed to track algorithm changes
 

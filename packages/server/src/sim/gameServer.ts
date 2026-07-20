@@ -1,6 +1,7 @@
 import {
   PROTOCOL_VERSION,
-  generateZone,
+  generateZoneWithVaults,
+  spawnVaultEntities,
   makeWorld,
   parseClientMessage,
   removeEntity,
@@ -83,17 +84,32 @@ export class GameServer {
   }
 
   private generateZones(): void {
-    // Generate three interconnected zones
+    // Generate three interconnected zones with vaults
     const zones = [
-      { id: ZONE_ID, width: 40, height: 20, seed: ZONE_SEED },
-      { id: "dungeon", width: 35, height: 25, seed: ZONE_SEED + 1 },
-      { id: "forest", width: 45, height: 22, seed: ZONE_SEED + 2 },
+      { id: ZONE_ID, width: 40, height: 20, seed: ZONE_SEED, difficulty: 3 },
+      { id: "dungeon", width: 35, height: 25, seed: ZONE_SEED + 1, difficulty: 6 },
+      { id: "forest", width: 45, height: 22, seed: ZONE_SEED + 2, difficulty: 4 },
     ];
 
     for (const zoneConfig of zones) {
-      const zone = generateZone(zoneConfig.id, zoneConfig.width, zoneConfig.height, zoneConfig.seed);
-      zone.connections = new Map();
-      this.world.zones.set(zoneConfig.id, zone);
+      // Generate zone with vaults
+      const result = generateZoneWithVaults({
+        id: zoneConfig.id,
+        width: zoneConfig.width,
+        height: zoneConfig.height,
+        seed: zoneConfig.seed,
+        difficulty: zoneConfig.difficulty,
+        enableVaults: true,
+        maxVaults: 3,
+      });
+
+      result.zone.connections = new Map();
+      this.world.zones.set(zoneConfig.id, result.zone);
+
+      // Spawn entities from vault spawns
+      spawnVaultEntities(this.world, zoneConfig.id, result.spawns);
+
+      // Also spawn some random monsters for variety
       this.spawnMonsters(zoneConfig.id);
     }
 

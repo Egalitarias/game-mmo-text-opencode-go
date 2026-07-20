@@ -8,5 +8,7 @@ export * from "./rules/ai.js";
 export * from "./rules/combat.js";
 export * from "./rules/inventory.js";
 export * from "./mapgen/static.js";
+export * from "./mapgen/vaults.js";
+export * from "./mapgen/zoneGenerator.js";
 export * from "./protocol/messages.js";
 export * from "./persistence/index.js";
