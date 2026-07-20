@@ -170,8 +170,9 @@ classic `ws` `isAlive` recipe).
   `onlyBuiltDependencies` (the documented key). Harmless; verify.
 - **`<pre id="grid">` glyph blob** isn't really screen-reader-friendly despite
   ARCHITECTURE.md's claim — needs an aria summary later.
-- **Test gaps** (suite is otherwise strong): `ChatHistory` capacity trim,
-  double-`hello` guard, world-full spawn.
+- **Test gaps** (suite is otherwise strong): **FIXED:** added tests for
+  `ChatHistory` capacity trim, double-`hello` guard (silently ignored), and
+  world-full spawn (reject with "world is full").
 
 ---
 

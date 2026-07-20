@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { PROTOCOL_VERSION } from "@game/shared";
+import { PROTOCOL_VERSION, generateZone, makeWorld } from "@game/shared";
 import type { ServerMessage } from "@game/shared";
 import type { Connection } from "../src/gateway/connection.js";
-import { GameServer } from "../src/sim/gameServer.js";
+import { GameServer, ZONE_ID, ZONE_SEED } from "../src/sim/gameServer.js";
+import { ChatHistory } from "../src/gateway/chat.js";
 
 class FakeConnection implements Connection {
   sent: ServerMessage[] = [];
@@ -224,5 +225,73 @@ describe("chat", () => {
     const conn = join(server, "Alice");
     server.handleMessage(conn, "definitely not json");
     expect(conn.last("reject").reason).toBe("malformed message");
+  });
+});
+
+describe("ChatHistory", () => {
+  it("trims old messages when capacity is exceeded", () => {
+    const history = new ChatHistory(3);
+    const key = "test";
+
+    for (let i = 0; i < 5; i++) {
+      history.push(key, { t: "chat", from: "Alice", channel: "global", text: `msg${i}`, tick: i });
+    }
+
+    const recent = history.recent(key);
+    expect(recent).toHaveLength(3);
+    expect(recent.map((m) => m.text)).toEqual(["msg2", "msg3", "msg4"]);
+  });
+
+  it("returns empty array for unknown keys", () => {
+    const history = new ChatHistory(10);
+    expect(history.recent("nonexistent")).toEqual([]);
+  });
+});
+
+describe("edge cases", () => {
+  it("silently ignores a second hello from an already-logged-in connection", () => {
+    const server = makeServer();
+    const conn = join(server, "Alice");
+    const welcomeCount = conn.ofType("welcome").length;
+
+    server.handleMessage(
+      conn,
+      JSON.stringify({ t: "hello", handle: "Alice2", protocolVersion: PROTOCOL_VERSION }),
+    );
+
+    expect(conn.ofType("welcome")).toHaveLength(welcomeCount);
+    expect(conn.ofType("reject")).toHaveLength(0);
+  });
+
+  it("rejects with 'world is full' when no walkable tiles are available", () => {
+    const world = makeWorld();
+    const tinyZone = generateZone(ZONE_ID, 3, 3, ZONE_SEED);
+    world.zones.set(ZONE_ID, tinyZone);
+    const server = new GameServer({ now: () => 1000, world });
+
+    const alice = join(server, "Alice");
+    expect(alice.ofType("welcome")).toHaveLength(1);
+
+    // Fill all remaining walkable tiles with fake entities.
+    const zone = world.zones.get(ZONE_ID)!;
+    for (let y = 0; y < zone.height; y++) {
+      for (let x = 0; x < zone.width; x++) {
+        const tile = zone.tiles[y * zone.width + x];
+        if (tile === "floor" && !world.positions.has(world.nextEntityId - 1)) {
+          const id = world.nextEntityId++;
+          world.entities.set(id, { id, glyph: "@" });
+          world.positions.set(id, { x, y, zone: ZONE_ID });
+        }
+      }
+    }
+
+    const bob = new FakeConnection();
+    server.handleConnection(bob);
+    server.handleMessage(
+      bob,
+      JSON.stringify({ t: "hello", handle: "Bob", protocolVersion: PROTOCOL_VERSION }),
+    );
+
+    expect(bob.last("reject").reason).toBe("world is full");
   });
 });
