@@ -1,6 +1,6 @@
 import { generateZone, PROTOCOL_VERSION } from "@game/shared";
 import type { ChatChannel, EntityId, EntityView, Zone } from "@game/shared";
-import { DomGridRenderer } from "./render/grid.js";
+import { CanvasGridRenderer } from "./render/canvas.js";
 import { MessageLog } from "./render/log.js";
 import { keyToMove } from "./input/keys.js";
 import { GameSocket } from "./net/socket.js";
@@ -13,7 +13,7 @@ function el<T extends HTMLElement>(id: string): T {
   return node as T;
 }
 
-const grid = new DomGridRenderer(el("grid"));
+const grid = new CanvasGridRenderer(el<HTMLCanvasElement>("grid"), 20);
 const log = new MessageLog(el("log"));
 const statusEl = el("status");
 const overlay = el("overlay");

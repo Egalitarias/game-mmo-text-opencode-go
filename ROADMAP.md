@@ -171,9 +171,12 @@ All ISSUES.md items resolved.
 - ✓ All tests updated to use binary protocol
 
 ### Canvas2D Renderer
-- Replace DOM grid with Canvas2D behind same `Renderer` interface
-- Only if profiling demands it
-- Better performance for large zones or many entities
+- ✓ Replace DOM grid with Canvas2D behind same `Renderer` interface
+- ✓ Better performance for large zones or many entities
+- ✓ Color-coded tiles and entities for visual clarity
+- ✓ Player highlighting with background color
+- ✓ Accessibility support with aria-label
+- ✓ 8 comprehensive tests with mocked canvas context
 
 ### Spectator Mode
 - Watch games without participating

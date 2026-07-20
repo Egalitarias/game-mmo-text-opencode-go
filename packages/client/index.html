@@ -23,10 +23,8 @@
       }
       #grid {
         margin: 0;
-        font-size: 18px;
-        line-height: 1.1;
-        letter-spacing: 0.05em;
-        color: #9cdcfe;
+        background: #000;
+        border: 1px solid #333;
         user-select: none;
       }
       #side {
@@ -115,7 +113,7 @@
   </head>
   <body>
     <div id="app">
-      <pre id="grid">connecting…</pre>
+      <canvas id="grid"></canvas>
       <div id="side">
         <div id="status"></div>
         <div id="log"></div>
