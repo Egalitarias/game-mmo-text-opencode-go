@@ -9,3 +9,4 @@ export * from "./rules/combat.js";
 export * from "./rules/inventory.js";
 export * from "./mapgen/static.js";
 export * from "./protocol/messages.js";
+export * from "./persistence/index.js";

@@ -94,14 +94,17 @@ All ISSUES.md items resolved.
 
 ## Phase 4: Persistence & Scaling
 
-**Status:** Not started
+**Status:** In progress
 
 ### Persistent WorldStore
-- Implement `WorldStore` interface seam (currently in-memory only)
+- ✓ Implement `WorldStore` interface seam
+- ✓ File-based persistence with JSON serialization
+- ✓ World serialization/deserialization
+- ✓ Graceful shutdown with world save
+- ✓ Automatic world load on startup
 - Redis or Postgres backing
 - Account-bound handles (currently ephemeral per connection)
 - Chat history persistence
-- Graceful restarts with world save/load
 
 ### Zone Sharding
 - Each zone runs in its own worker/process

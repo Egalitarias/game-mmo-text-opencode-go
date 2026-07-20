@@ -3,10 +3,12 @@ import { encodeServerMessage } from "@game/shared";
 import { GameServer } from "./sim/gameServer.js";
 import { startHeartbeat } from "./gateway/heartbeat.js";
 import { installShutdownSignals } from "./gateway/shutdown.js";
+import { FileWorldStore } from "./persistence/fileWorldStore.js";
 import type { Connection } from "./gateway/connection.js";
 
 const HOST = process.env.HOST ?? "127.0.0.1";
 const PORT = Number(process.env.PORT ?? 3000);
+const WORLD_SAVE_PATH = process.env.WORLD_SAVE_PATH ?? "./data/world.json";
 /** Dead connections are dropped after missing two pings (~2× this interval). */
 const HEARTBEAT_MS = 15_000;
 /**
@@ -16,7 +18,9 @@ const HEARTBEAT_MS = 15_000;
  */
 const MAX_PAYLOAD_BYTES = 16 * 1024;
 
-const game = new GameServer();
+// Initialize world store and load existing world if available
+const worldStore = new FileWorldStore(WORLD_SAVE_PATH);
+const game = new GameServer({ worldStore });
 game.start(100);
 
 const wss = new WebSocketServer({
@@ -51,7 +55,7 @@ console.log(`game server listening on ws://${HOST}:${PORT}/ws`);
 
 installShutdownSignals({
   stopHeartbeat,
-  stopGame: () => game.stop(),
+  stopGame: () => game.shutdown(),
   closeServer: () => wss.close(),
   exit: (code) => process.exit(code),
 });

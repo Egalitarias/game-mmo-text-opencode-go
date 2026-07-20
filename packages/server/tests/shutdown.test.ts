@@ -11,11 +11,11 @@ function makeDeps() {
 }
 
 describe("makeShutdownHandler", () => {
-  it("calls all cleanup functions and exits with code 0", () => {
+  it("calls all cleanup functions and exits with code 0", async () => {
     const deps = makeDeps();
     const handler = makeShutdownHandler(deps);
 
-    handler();
+    await handler();
 
     expect(deps.stopHeartbeat).toHaveBeenCalledOnce();
     expect(deps.stopGame).toHaveBeenCalledOnce();
@@ -24,13 +24,13 @@ describe("makeShutdownHandler", () => {
     expect(deps.exit).toHaveBeenCalledWith(0);
   });
 
-  it("is idempotent — second call is a no-op", () => {
+  it("is idempotent — second call is a no-op", async () => {
     const deps = makeDeps();
     const handler = makeShutdownHandler(deps);
 
-    handler();
-    handler();
-    handler();
+    await handler();
+    await handler();
+    await handler();
 
     expect(deps.stopHeartbeat).toHaveBeenCalledOnce();
     expect(deps.stopGame).toHaveBeenCalledOnce();
@@ -38,17 +38,17 @@ describe("makeShutdownHandler", () => {
     expect(deps.exit).toHaveBeenCalledOnce();
   });
 
-  it("calls cleanup in order: heartbeat, game, server, exit", () => {
+  it("calls cleanup in order: heartbeat, game, server, exit", async () => {
     const order: string[] = [];
     const deps = {
-      stopHeartbeat: () => order.push("heartbeat"),
-      stopGame: () => order.push("game"),
-      closeServer: () => order.push("server"),
-      exit: () => order.push("exit"),
+      stopHeartbeat: () => { order.push("heartbeat"); },
+      stopGame: () => { order.push("game"); },
+      closeServer: () => { order.push("server"); },
+      exit: () => { order.push("exit"); },
     };
     const handler = makeShutdownHandler(deps);
 
-    handler();
+    await handler();
 
     expect(order).toEqual(["heartbeat", "game", "server", "exit"]);
   });

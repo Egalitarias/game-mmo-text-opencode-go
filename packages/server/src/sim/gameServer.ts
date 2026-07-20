@@ -17,6 +17,7 @@ import type {
   QueuedCommand,
   ServerMessage,
   World,
+  WorldStore,
   ZoneId,
 } from "@game/shared";
 import type { Connection } from "../gateway/connection.js";
@@ -38,6 +39,7 @@ interface ClientState {
 export interface GameServerOptions {
   now?: () => number;
   world?: World;
+  worldStore?: WorldStore;
 }
 
 /**
@@ -52,11 +54,30 @@ export class GameServer {
   /** One queued command per entity per tick — last write wins (ARCHITECTURE.md §5.1). */
   private readonly commandQueue = new Map<EntityId, Command>();
   private timer: ReturnType<typeof setInterval> | undefined;
+  private readonly worldStore?: WorldStore | undefined;
 
   constructor(opts: GameServerOptions = {}) {
     this.now = opts.now ?? Date.now;
+    this.worldStore = opts.worldStore;
     this.world = opts.world ?? makeWorld();
-    if (!this.world.zones.has(ZONE_ID)) {
+    
+    // If worldStore is provided and no world was passed, try to load
+    if (this.worldStore && !opts.world) {
+      this.worldStore.load().then((loadedWorld) => {
+        if (loadedWorld) {
+          // Copy loaded world data into this.world
+          Object.assign(this.world, loadedWorld);
+          console.log("World loaded from persistent storage");
+        } else if (!this.world.zones.has(ZONE_ID)) {
+          this.generateZones();
+        }
+      }).catch((error) => {
+        console.error("Failed to load world:", error);
+        if (!this.world.zones.has(ZONE_ID)) {
+          this.generateZones();
+        }
+      });
+    } else if (!this.world.zones.has(ZONE_ID)) {
       this.generateZones();
     }
   }
@@ -308,6 +329,26 @@ export class GameServer {
   stop(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = undefined;
+  }
+
+  /**
+   * Save the current world state to persistent storage.
+   * Returns a promise that resolves when the save is complete.
+   */
+  async save(): Promise<void> {
+    if (!this.worldStore) {
+      console.warn("No world store configured, skipping save");
+      return;
+    }
+    await this.worldStore.save(this.world);
+  }
+
+  /**
+   * Gracefully shutdown: save world state and stop the tick loop.
+   */
+  async shutdown(): Promise<void> {
+    await this.save();
+    this.stop();
   }
 
   // ── helpers ────────────────────────────────────────────────────────────────

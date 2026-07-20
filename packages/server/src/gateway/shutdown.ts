@@ -1,17 +1,17 @@
 export interface ShutdownDeps {
   stopHeartbeat: () => void;
-  stopGame: () => void;
+  stopGame: () => void | Promise<void>;
   closeServer: () => void;
   exit: (code: number) => void;
 }
 
-export function makeShutdownHandler(deps: ShutdownDeps): () => void {
+export function makeShutdownHandler(deps: ShutdownDeps): () => Promise<void> {
   let shuttingDown = false;
-  return () => {
+  return async () => {
     if (shuttingDown) return;
     shuttingDown = true;
     deps.stopHeartbeat();
-    deps.stopGame();
+    await deps.stopGame();
     deps.closeServer();
     deps.exit(0);
   };
@@ -19,10 +19,16 @@ export function makeShutdownHandler(deps: ShutdownDeps): () => void {
 
 export function installShutdownSignals(deps: ShutdownDeps): () => void {
   const handler = makeShutdownHandler(deps);
-  process.on("SIGINT", handler);
-  process.on("SIGTERM", handler);
+  const syncHandler = () => {
+    handler().catch((error) => {
+      console.error("Shutdown error:", error);
+      process.exit(1);
+    });
+  };
+  process.on("SIGINT", syncHandler);
+  process.on("SIGTERM", syncHandler);
   return () => {
-    process.removeListener("SIGINT", handler);
-    process.removeListener("SIGTERM", handler);
+    process.removeListener("SIGINT", syncHandler);
+    process.removeListener("SIGTERM", syncHandler);
   };
 }
