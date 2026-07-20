@@ -53,11 +53,15 @@ const state: ClientState = {
 
 const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`;
 
+function sendHello(): void {
+  if (state.handle) {
+    socket.send({ t: "hello", handle: state.handle, protocolVersion: PROTOCOL_VERSION });
+  }
+}
+
 const socket = new GameSocket(wsUrl, {
   onOpen() {
-    if (state.handle) {
-      socket.send({ t: "hello", handle: state.handle, protocolVersion: PROTOCOL_VERSION });
-    }
+    sendHello();
   },
   onClose() {
     const wasInSession = state.youId !== undefined;
@@ -166,7 +170,10 @@ joinForm.addEventListener("submit", (e) => {
   e.preventDefault();
   state.handle = handleInput.value.trim();
   overlayError.textContent = "";
-  socket.connect();
+  // Reuse an open sessionless socket (e.g. after a rejected hello) instead of
+  // piling up duplicate connections.
+  if (socket.isOpen()) sendHello();
+  else socket.connect();
 });
 
 // ── render ───────────────────────────────────────────────────────────────────

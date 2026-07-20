@@ -11,32 +11,43 @@ const RECONNECT_MS = 1000;
 /** WebSocket wrapper: JSON protocol, auto-reconnect, no game logic. */
 export class GameSocket {
   private ws: WebSocket | undefined;
-  private closedByUser = false;
 
   constructor(
     private readonly url: string,
     private readonly handlers: SocketHandlers,
   ) {}
 
+  /** Open the socket unless one is already open or connecting. */
   connect(): void {
+    if (
+      this.ws !== undefined &&
+      (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)
+    ) {
+      return;
+    }
     const ws = new WebSocket(this.url);
     this.ws = ws;
     ws.onopen = () => this.handlers.onOpen();
     ws.onmessage = (ev: MessageEvent<string>) => {
-      this.handlers.onMessage(JSON.parse(ev.data) as ServerMessage);
+      let msg: ServerMessage;
+      try {
+        msg = JSON.parse(ev.data) as ServerMessage;
+      } catch {
+        return; // drop malformed frames
+      }
+      this.handlers.onMessage(msg);
     };
     ws.onclose = () => {
       this.handlers.onClose();
-      if (!this.closedByUser) setTimeout(() => this.connect(), RECONNECT_MS);
+      setTimeout(() => this.connect(), RECONNECT_MS);
     };
+  }
+
+  isOpen(): boolean {
+    return this.ws?.readyState === WebSocket.OPEN;
   }
 
   send(msg: ClientMessage): void {
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg));
-  }
-
-  close(): void {
-    this.closedByUser = true;
-    this.ws?.close();
   }
 }

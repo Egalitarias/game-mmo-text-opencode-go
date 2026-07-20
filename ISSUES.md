@@ -127,15 +127,16 @@ the type won't touch the schema; new commands silently parse-fail at runtime.
 **Fix:** annotate `const commandSchema: z.ZodType<Command> = ...` (or derive
 the type via `z.infer`) so drift is a compile error.
 
-### 10. Client socket robustness
+### 10. Client socket robustness — **FIXED**
 
 `packages/client/src/net/socket.ts`
 
-- `JSON.parse(ev.data) as ServerMessage` — no try/catch; one malformed frame
-  throws inside `onmessage`.
-- `connect()` has no guard — double-submitting the join form opens two live
-  sockets. Add `if (this.ws) return;`.
-- `close()`/`closedByUser` is dead code — nothing calls it.
+> Fixed: malformed frames are dropped via try/catch in `onmessage`;
+> `connect()` no-ops while a socket is open/connecting; dead
+> `close()`/`closedByUser` removed. To keep resubmits working after a rejected
+> hello, the join form reuses an open sessionless socket (`socket.isOpen()` →
+> `sendHello()`) instead of opening a duplicate — verified live against the
+> server.
 
 ### 11. Dev proxy/host mismatch
 
