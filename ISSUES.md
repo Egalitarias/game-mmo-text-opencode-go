@@ -48,9 +48,15 @@ clears `state.entities`/`roster` on disconnect.
 "reconnecting" state; store the handle in state rather than re-reading the
 input; treat a `hello` reject as fatal-to-session regardless of stale `youId`.
 
-### 3. No dead-connection detection
+### 3. No dead-connection detection — **FIXED**
 
 `packages/server/src/index.ts`, `packages/client/src/main.ts`
+
+> Fixed: `packages/server/src/gateway/heartbeat.ts` pings every socket every
+> 15s and terminates any that missed the previous ping; the resulting "close"
+> frees the entity and handle through the normal path. Covered by a ws-level
+> test (responsive client kept, `autoPong: false` peer dropped) and verified
+> against the live server.
 
 Neither side heartbeats. The protocol has `ping`/`pong` but the client never
 sends `ping` and the server never pings nor terminates stale sockets. A laptop
