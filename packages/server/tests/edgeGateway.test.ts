@@ -186,7 +186,7 @@ describe("EdgeGateway", () => {
       
       const messages: any[] = [];
       client.on("message", (data) => {
-        messages.push(decode(data));
+        messages.push(decode(data as Buffer));
       });
 
       await new Promise<void>((resolve) => {
@@ -214,7 +214,7 @@ describe("EdgeGateway", () => {
       
       const messages: any[] = [];
       client.on("message", (data) => {
-        messages.push(decode(data));
+        messages.push(decode(data as Buffer));
       });
 
       await new Promise<void>((resolve) => {
