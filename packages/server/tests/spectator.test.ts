@@ -39,7 +39,7 @@ describe("Spectator Mode", () => {
 
     const welcomeMsgs = conn.getMessagesByType("welcome");
     expect(welcomeMsgs).toHaveLength(1);
-    expect(welcomeMsgs[0].entityId).toBe(-1); // Spectators get entityId -1
+    expect(welcomeMsgs[0]!.entityId).toBe(-1); // Spectators get entityId -1
   });
 
   it("should send full snapshot to spectators (no FOV filtering)", () => {
@@ -65,7 +65,7 @@ describe("Spectator Mode", () => {
     const snapshotMsgs = spectatorConn.getMessagesByType("snapshot");
     expect(snapshotMsgs).toHaveLength(1);
     // Spectator should see all entities (player + monsters)
-    expect(snapshotMsgs[0].entities.length).toBeGreaterThan(0);
+    expect(snapshotMsgs[0]!.entities.length).toBeGreaterThan(0);
   });
 
   it("should reject commands from spectators", () => {
@@ -87,7 +87,7 @@ describe("Spectator Mode", () => {
 
     const rejectMsgs = conn.getMessagesByType("reject");
     expect(rejectMsgs).toHaveLength(1);
-    expect(rejectMsgs[0].reason).toContain("spectator");
+    expect(rejectMsgs[0]!.reason).toContain("spectator");
   });
 
   it("should not add spectators to the roster", () => {
@@ -101,7 +101,7 @@ describe("Spectator Mode", () => {
     }));
 
     const playerWelcome = playerConn.getMessagesByType("welcome");
-    expect(playerWelcome[0].roster).toContain("player1");
+    expect(playerWelcome[0]!.roster).toContain("player1");
 
     // Add a spectator
     const spectatorConn = new MockConnection();
@@ -115,7 +115,7 @@ describe("Spectator Mode", () => {
 
     // Spectator should not be in the roster
     const spectatorWelcome = spectatorConn.getMessagesByType("welcome");
-    expect(spectatorWelcome[0].roster).not.toContain("spectator1");
+    expect(spectatorWelcome[0]!.roster).not.toContain("spectator1");
   });
 
   it("should not broadcast joined event for spectators", () => {
@@ -224,7 +224,7 @@ describe("Spectator Mode", () => {
 
     const rejectMsgs = playerConn.getMessagesByType("reject");
     expect(rejectMsgs).toHaveLength(1);
-    expect(rejectMsgs[0].reason).toContain("taken");
+    expect(rejectMsgs[0]!.reason).toContain("taken");
   });
 
   it("should reject a spectator handle that matches an existing player handle", () => {
@@ -247,7 +247,7 @@ describe("Spectator Mode", () => {
 
     const rejectMsgs = spectatorConn.getMessagesByType("reject");
     expect(rejectMsgs).toHaveLength(1);
-    expect(rejectMsgs[0].reason).toContain("taken");
+    expect(rejectMsgs[0]!.reason).toContain("taken");
   });
 
   it("should cleanly disconnect spectators without removing entities", () => {
@@ -305,7 +305,7 @@ describe("Spectator Mode", () => {
 
     const chatMsgs = spectatorConn.getMessagesByType("chat");
     expect(chatMsgs).toHaveLength(1);
-    expect(chatMsgs[0].text).toBe("hello zone");
+    expect(chatMsgs[0]!.text).toBe("hello zone");
   });
 
   it("should include spectatorCount in welcome messages", () => {
@@ -318,7 +318,7 @@ describe("Spectator Mode", () => {
     }));
 
     const playerWelcome = playerConn.getMessagesByType("welcome");
-    expect(playerWelcome[0].spectatorCount).toBe(0);
+    expect(playerWelcome[0]!.spectatorCount).toBe(0);
 
     const spectatorConn = new MockConnection();
     server.handleConnection(spectatorConn);
@@ -330,6 +330,6 @@ describe("Spectator Mode", () => {
     }));
 
     const spectatorWelcome = spectatorConn.getMessagesByType("welcome");
-    expect(spectatorWelcome[0].spectatorCount).toBe(1);
+    expect(spectatorWelcome[0]!.spectatorCount).toBe(1);
   });
 });
