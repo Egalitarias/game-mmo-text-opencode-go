@@ -37,6 +37,10 @@ interface ClientState {
   chatBucket: TokenBucket;
   /** Previous entity views for delta calculation */
   lastSnapshot?: Map<EntityId, EntityView>;
+  /** Whether this client is in spectator mode */
+  spectator?: boolean;
+  /** Handle for spectators (they don't have a player entity) */
+  handle?: string;
 }
 
 export interface GameServerOptions {
@@ -196,6 +200,7 @@ export class GameServer {
   handleClose(conn: Connection): void {
     const state = this.clients.get(conn);
     this.clients.delete(conn);
+    if (state?.spectator) return;
     if (state?.entityId !== undefined) {
       const handle = this.world.players.get(state.entityId)?.handle;
       removeEntity(this.world, state.entityId);
@@ -219,7 +224,7 @@ export class GameServer {
     }
     switch (msg.t) {
       case "hello":
-        this.onHello(conn, msg.handle, msg.protocolVersion);
+        this.onHello(conn, msg.handle, msg.protocolVersion, msg.spectator ?? false);
         break;
       case "cmd":
         this.onCmd(conn, msg.seq, msg.cmd);
@@ -233,7 +238,7 @@ export class GameServer {
     }
   }
 
-  private onHello(conn: Connection, handle: string, protocolVersion: number): void {
+  private onHello(conn: Connection, handle: string, protocolVersion: number, spectator: boolean): void {
     const state = this.clients.get(conn);
     if (!state) return;
     if (state.entityId !== undefined) return; // already logged in
@@ -247,6 +252,39 @@ export class GameServer {
     }
     if (this.isHandleTaken(handle)) {
       conn.send({ t: "reject", seq: -1, reason: `handle "${handle}" is taken` });
+      return;
+    }
+
+    state.spectator = spectator;
+
+    if (spectator) {
+      // Spectator mode: no entity spawn, full view
+      state.entityId = -1; // Spectators get entityId -1
+      state.handle = handle; // Store handle for chat
+      const zone = this.world.zones.get(ZONE_ID);
+      conn.send({
+        t: "welcome",
+        entityId: -1, // Spectators don't have an entity
+        zoneId: ZONE_ID,
+        zoneSeed: ZONE_SEED,
+        zoneWidth: zone?.width ?? 0,
+        zoneHeight: zone?.height ?? 0,
+        tick: this.world.tick,
+        roster: this.onlineHandles(),
+        spectatorCount: this.spectatorCount(),
+      });
+      
+      // Send full snapshot (no FOV filtering for spectators)
+      const initialViews = this.buildViews();
+      conn.send({ t: "snapshot", tick: this.world.tick, entities: initialViews });
+      
+      // Store initial snapshot for delta calculation
+      state.lastSnapshot = new Map(initialViews.map(v => [v.id, v]));
+      
+      for (const msg of this.chatHistory.recent(globalChatKey())) conn.send(msg);
+      for (const msg of this.chatHistory.recent(zoneChatKey(ZONE_ID))) conn.send(msg);
+      
+      // Don't broadcast joined event for spectators
       return;
     }
 
@@ -267,6 +305,7 @@ export class GameServer {
       zoneHeight: zone?.height ?? 0,
       tick: this.world.tick,
       roster: this.onlineHandles(),
+      spectatorCount: this.spectatorCount(),
     });
     
     // Send initial full snapshot
@@ -293,8 +332,12 @@ export class GameServer {
 
   private onCmd(conn: Connection, seq: number, cmd: Command): void {
     const state = this.clients.get(conn);
-    if (state?.entityId === undefined) {
+    if (!state || state.entityId === undefined) {
       conn.send({ t: "reject", seq, reason: "not logged in" });
+      return;
+    }
+    if (state.spectator) {
+      conn.send({ t: "reject", seq, reason: "spectators cannot send commands" });
       return;
     }
     this.commandQueue.set(state.entityId, cmd);
@@ -302,13 +345,22 @@ export class GameServer {
 
   private onChat(conn: Connection, channel: "zone" | "global", text: string): void {
     const state = this.clients.get(conn);
-    if (state?.entityId === undefined) {
+    if (!state || state.entityId === undefined) {
       conn.send({ t: "reject", seq: -1, reason: "not logged in" });
       return;
     }
-    const handle = this.world.players.get(state.entityId)?.handle ?? "?";
-    const pos = channel === "zone" ? this.world.positions.get(state.entityId) : undefined;
-    if (channel === "zone" && !pos) return;
+    
+    // Spectators can chat but use their handle from the hello message
+    const handle = state.spectator 
+      ? (state.handle ?? "spectator") // Spectators don't have a player entry, use their handle
+      : (this.world.players.get(state.entityId)?.handle ?? "?");
+    
+    const pos = channel === "zone" && !state.spectator 
+      ? this.world.positions.get(state.entityId) 
+      : undefined;
+    
+    if (channel === "zone" && !pos && !state.spectator) return;
+    
     if (!state.chatBucket.tryTake()) {
       conn.send({ t: "reject", seq: -1, reason: "chat rate limited" });
       return;
@@ -319,8 +371,10 @@ export class GameServer {
       this.chatHistory.push(globalChatKey(), msg);
       this.broadcastAll(msg);
     } else {
-      this.chatHistory.push(zoneChatKey(pos!.zone), msg);
-      this.broadcastZone(pos!.zone, msg);
+      // For spectators, broadcast to the default zone
+      const zone = pos?.zone ?? ZONE_ID;
+      this.chatHistory.push(zoneChatKey(zone), msg);
+      this.broadcastZone(zone, msg);
     }
   }
 
@@ -340,7 +394,11 @@ export class GameServer {
       // Send per-player FOV-filtered deltas
       for (const [conn, state] of this.clients) {
         if (state.entityId === undefined) continue;
-        const currentViews = this.buildViews(state.entityId);
+        
+        // Spectators get full view (no FOV filtering)
+        const currentViews = state.spectator 
+          ? this.buildViews() 
+          : this.buildViews(state.entityId);
         
         // Calculate delta from previous snapshot
         const { changed, removed } = this.calculateDelta(currentViews, state.lastSnapshot);
@@ -393,11 +451,22 @@ export class GameServer {
     for (const session of this.world.players.values()) {
       if (session.handle.toLowerCase() === lower) return true;
     }
+    for (const state of this.clients.values()) {
+      if (state.spectator && state.handle?.toLowerCase() === lower) return true;
+    }
     return false;
   }
 
   private onlineHandles(): string[] {
     return [...this.world.players.values()].map((p) => p.handle);
+  }
+
+  private spectatorCount(): number {
+    let count = 0;
+    for (const state of this.clients.values()) {
+      if (state.spectator) count++;
+    }
+    return count;
   }
 
   private buildViews(forEntityId?: EntityId): EntityView[] {
@@ -473,7 +542,7 @@ export class GameServer {
   private broadcastZone(zone: ZoneId, msg: ServerMessage): void {
     for (const [conn, state] of this.clients) {
       if (state.entityId === undefined) continue;
-      if (this.world.positions.get(state.entityId)?.zone === zone) conn.send(msg);
+      if (state.spectator || this.world.positions.get(state.entityId)?.zone === zone) conn.send(msg);
     }
   }
 }

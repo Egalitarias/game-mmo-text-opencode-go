@@ -20,6 +20,7 @@ const overlay = el("overlay");
 const overlayError = el("overlay-error");
 const joinForm = el<HTMLFormElement>("join-form");
 const handleInput = el<HTMLInputElement>("handle");
+const spectatorInput = el<HTMLInputElement>("spectator");
 const chatbar = el("chatbar");
 const chatPrompt = el("chat-prompt");
 const chatField = el<HTMLInputElement>("chat-field");
@@ -130,9 +131,10 @@ function getInterpolatedEntities(): EntityView[] {
 }
 
 function renderLoop(): void {
-  if (state.zone && state.youId !== undefined) {
+  if (state.zone && (state.youId !== undefined || state.spectator)) {
     const interpolated = getInterpolatedEntities();
-    grid.render({ zone: state.zone, entities: interpolated, youId: state.youId });
+    // Spectators don't have a youId, so pass undefined
+    grid.render({ zone: state.zone, entities: interpolated, youId: state.spectator ? undefined : state.youId });
   }
   
   animationFrameId = requestAnimationFrame(renderLoop);
@@ -163,6 +165,9 @@ interface ClientState {
   chatChannel: ChatChannel;
   chatOpen: boolean;
   seq: number;
+  /** Whether this client is in spectator mode */
+  spectator: boolean;
+  spectatorCount: number;
 }
 
 const state: ClientState = {
@@ -174,6 +179,8 @@ const state: ClientState = {
   chatChannel: "zone",
   chatOpen: false,
   seq: 0,
+  spectator: false,
+  spectatorCount: 0,
 };
 
 // ── networking ───────────────────────────────────────────────────────────────
@@ -182,7 +189,12 @@ const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.hos
 
 function sendHello(): void {
   if (state.handle) {
-    socket.send({ t: "hello", handle: state.handle, protocolVersion: PROTOCOL_VERSION });
+    socket.send({ 
+      t: "hello", 
+      handle: state.handle, 
+      protocolVersion: PROTOCOL_VERSION,
+      spectator: state.spectator 
+    });
   }
 }
 
@@ -207,8 +219,14 @@ const socket = new GameSocket(wsUrl, {
         state.youId = msg.entityId;
         state.zone = generateZone(msg.zoneId, msg.zoneWidth, msg.zoneHeight, msg.zoneSeed);
         state.roster = msg.roster;
+        state.spectatorCount = msg.spectatorCount;
         overlay.classList.add("hidden");
-        log.append(`welcome, ${state.handle} — you are @`, "game");
+        log.append(
+          state.spectator
+            ? `welcome, ${state.handle} — spectating`
+            : `welcome, ${state.handle} — you are @`,
+          "game",
+        );
         startRenderLoop();
         break;
       }
@@ -307,6 +325,10 @@ window.addEventListener("keydown", (e) => {
     openChat();
     return;
   }
+  
+  // Spectators cannot send movement commands
+  if (state.spectator) return;
+  
   const cmd = keyToMove(e.code);
   if (cmd) {
     e.preventDefault();
@@ -317,6 +339,7 @@ window.addEventListener("keydown", (e) => {
 joinForm.addEventListener("submit", (e) => {
   e.preventDefault();
   state.handle = handleInput.value.trim();
+  state.spectator = spectatorInput.checked;
   overlayError.textContent = "";
   // Reuse an open sessionless socket (e.g. after a rejected hello) instead of
   // piling up duplicate connections.
@@ -327,9 +350,18 @@ joinForm.addEventListener("submit", (e) => {
 // ── render ───────────────────────────────────────────────────────────────────
 
 function renderStatus(): void {
-  const you = state.entities.find((e) => e.id === state.youId);
-  statusEl.textContent = [
-    `you: ${you?.handle ?? "…"} (@)`,
-    `online (${state.roster.length}): ${state.roster.join(", ")}`,
-  ].join("\n");
+  if (state.spectator) {
+    statusEl.textContent = [
+      `mode: SPECTATING`,
+      `online (${state.roster.length}): ${state.roster.join(", ")}`,
+      `spectators: ${state.spectatorCount}`,
+    ].join("\n");
+  } else {
+    const you = state.entities.find((e) => e.id === state.youId);
+    statusEl.textContent = [
+      `you: ${you?.handle ?? "…"} (@)`,
+      `online (${state.roster.length}): ${state.roster.join(", ")}`,
+      `spectators: ${state.spectatorCount}`,
+    ].join("\n");
+  }
 }

@@ -86,7 +86,7 @@ export class CanvasGridRenderer {
       }
 
       // Draw glyph
-      this.ctx.fillStyle = GLYPH_COLORS[entity.glyph] ?? GLYPH_COLORS.default;
+      this.ctx.fillStyle = GLYPH_COLORS[entity.glyph] ?? GLYPH_COLORS.default ?? "#ffffff";
       this.ctx.fillText(entity.glyph, x, y);
     }
 

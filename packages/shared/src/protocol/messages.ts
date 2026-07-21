@@ -13,7 +13,7 @@ export const HANDLE_PATTERN = /^[a-zA-Z0-9_-]{1,16}$/;
 // ── client → server ──────────────────────────────────────────────────────────
 
 export type ClientMessage =
-  | { t: "hello"; handle: string; protocolVersion: number }
+  | { t: "hello"; handle: string; protocolVersion: number; spectator?: boolean | undefined }
   | { t: "cmd"; seq: number; cmd: Command }
   | { t: "chat"; channel: ChatChannel; text: string }
   | { t: "ping"; clientTime: number };
@@ -56,6 +56,7 @@ const clientMessageSchema = z.discriminatedUnion("t", [
     t: z.literal("hello"),
     handle: z.string().regex(HANDLE_PATTERN),
     protocolVersion: z.number().int().positive(),
+    spectator: z.boolean().optional(),
   }),
   z.object({ t: z.literal("cmd"), seq: z.number().int().nonnegative(), cmd: commandSchema }),
   z.object({
@@ -115,6 +116,7 @@ export type ServerMessage =
       zoneHeight: number;
       tick: number;
       roster: string[];
+      spectatorCount: number;
     }
   | { t: "snapshot"; tick: number; entities: EntityView[] }
   | { t: "delta"; tick: number; changed: EntityView[]; removed: EntityId[] }
